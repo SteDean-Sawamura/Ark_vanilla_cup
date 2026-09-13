@@ -287,6 +287,16 @@ async function init(){
       const sr=await fetch(base+'story_chars.json');
       if(sr.ok)RAW_STORY=(await sr.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isStory:true,isArt:true}));
     }catch(e){}
+    setProg(92,'加载覆写数据…');
+    try{
+      const base=document.baseURI.replace(/[^/]*$/,'');
+      const owr=await fetch(base+'overwrites.json');
+      if(owr.ok){
+        const ow=await owr.json();
+        const apply=arr=>{for(const o of arr){const v=ow[o.cn];if(v){for(const k in v){if(k!=='_说明')o[k]=v[k]}}}};
+        apply(RAW_OPS);apply(RAW_ENEMIES);apply(RAW_STORY);
+      }
+    }catch(e){}
     rebuildData();
     const total=RAW_OPS.length+RAW_ENEMIES.length;
     setProg(100,`加载完成！干员${RAW_OPS.length} 敌人${RAW_ENEMIES.length} 剧情${RAW_STORY.length}`);
