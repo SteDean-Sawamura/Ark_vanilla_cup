@@ -508,7 +508,7 @@ function buildAll(){
 
   wireUpPanels();
   if(tabs.length)switchTab(tabs[0].id);
-  setTimeout(autoAdv,100);
+  setTimeout(()=>{autoAdv();syncFinals()},100);
 }
 
 function addBracketTab(tid,label,ops){
@@ -587,7 +587,7 @@ function switchTab(g){
   if(btns[idx])btns[idx].classList.add('active');
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
   const p=document.getElementById('p-'+g);if(p)p.classList.add('act');
-  curTab=g;if(views[g]?.s===1)rvTab(g);loadImgs(g)}
+  curTab=g;if(views[g]?.s===1)rvTab(g);loadImgs(g);syncFinals()}
 
 /* ── Config ── */
 function changeMode(m){mode=m;buildAll()}
@@ -666,7 +666,28 @@ function autoAdv(){
 function sel(s,w){
   s.className='S F W';s.dataset.cn=w.dataset.cn;s.dataset.av=w.dataset.av;
   s.innerHTML=`<img src="${w.dataset.av}" loading="lazy"><div class="nm">${w.dataset.cn}</div>`;
-  s.setAttribute('onclick','openPicker(this)')}
+  s.setAttribute('onclick','openPicker(this)');
+  syncFinals()}
+
+function syncFinals(){
+  document.querySelectorAll('[data-link]').forEach(slot=>{
+    const src=document.getElementById(slot.dataset.link);
+    if(!src)return;
+    const hasCn=src.dataset.cn&&(src.classList.contains('F')||src.classList.contains('W'));
+    if(hasCn&&slot.dataset.cn!==src.dataset.cn){
+      slot.className='S F W';
+      slot.dataset.cn=src.dataset.cn;slot.dataset.av=src.dataset.av;
+      slot.innerHTML=`<img src="${src.dataset.av}" loading="lazy"><div class="nm">${src.dataset.cn}</div>`;
+    }else if(!hasCn&&slot.dataset.cn){
+      const lc=slot.dataset.link.replace(/-champ$/,'');
+      const idx=lc.replace(/^.*?(\d+)$/,'$1');
+      const label=String.fromCharCode(65+parseInt(idx));
+      slot.className='S';slot.style.cssText+=';border-color:#888;background:#0f1629';
+      slot.dataset.cn='';slot.dataset.av='';
+      slot.innerHTML=`<div class="ph" style="font-size:11px;color:#888">${label}组冠军</div>`;
+    }
+  });
+}
 
 /* ── Picker ── */
 function openPicker(s){
