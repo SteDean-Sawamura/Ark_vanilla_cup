@@ -171,7 +171,40 @@ async function fetchWithRetry(url,retries=3){
 }
 
 async function fetchOperators(){
-  setProg(0,'获取干员列表…');
+  // Try cached data first
+  setProg(0,'加载缓存数据…');
+  let cached=null;
+  try{
+    const base=document.baseURI.replace(/[^/]*$/,'');
+    const cr=await fetch(base+'operators.json');
+    if(cr.ok)cached=await cr.json();
+  }catch(e){}
+
+  if(cached&&cached.length){
+    setProg(10,`缓存 ${cached.length} 位干员，检查更新…`);
+    // Check if PRTS has more operators
+    let prtsCount=0;
+    try{
+      const countUrl=`${API}?action=cargoquery&tables=chara&fields=chara.cn&limit=1&format=json&origin=*`;
+      // Use a lightweight query just to get total count
+      const countUrl2=`${API}?action=cargoquery&tables=chara,chara_extra_info&join_on=chara._pageName=chara_extra_info._pageName&fields=chara.cn&limit=500&format=json&origin=*`;
+      const cr2=await fetchWithRetry(countUrl2);
+      const cd=await cr2.json();
+      prtsCount=(cd.cargoquery||[]).length;
+    }catch(e){
+      setProg(20,`无法连接PRTS，使用缓存数据 (${cached.length}人)`);
+      return cached.map(o=>({cn:o.cn,sex:o.sex,av:o.av,charId:o.cid||'',base:o.base||''}));
+    }
+
+    if(prtsCount<=cached.length){
+      setProg(100,`数据已是最新 (${cached.length}人)`);
+      return cached.map(o=>({cn:o.cn,sex:o.sex,av:o.av,charId:o.cid||'',base:o.base||''}));
+    }
+    setProg(15,`发现新干员 (${cached.length}→${prtsCount})，拉取完整数据…`);
+  }
+
+  // Full fetch from PRTS
+  setProg(cached?15:0,'获取干员列表…');
   const url=`${API}?action=cargoquery&tables=chara,chara_extra_info`+
     `&join_on=chara._pageName=chara_extra_info._pageName`+
     `&fields=chara.cn,chara.charId,chara_extra_info.sex&limit=500&format=json&origin=*`;
@@ -184,8 +217,22 @@ async function fetchOperators(){
     const base=m?m[1].replace(/\d+$/,''):'';
     return{cn:r.title.cn,sex:r.title.sex||'',av:'',charId:cid,base};
   }).filter(o=>o.cn);
-  setProg(20,`获取到 ${ops.length} 位干员，正在加载头像…`);
-  await fetchAvatars(ops);
+
+  // Reuse cached avatars where possible
+  if(cached){
+    const avMap={};
+    for(const c of cached)if(c.av)avMap[c.cn]=c.av;
+    const needFetch=[];
+    for(const o of ops){
+      if(avMap[o.cn])o.av=avMap[o.cn];
+      else needFetch.push(o);
+    }
+    setProg(20,`复用 ${ops.length-needFetch.length} 个缓存头像，拉取 ${needFetch.length} 个新头像…`);
+    if(needFetch.length)await fetchAvatars(needFetch);
+  }else{
+    setProg(20,`获取到 ${ops.length} 位干员，正在加载头像…`);
+    await fetchAvatars(ops);
+  }
   return ops;
 }
 
