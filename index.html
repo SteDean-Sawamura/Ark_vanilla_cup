@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>明日方舟香草杯</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;overflow:hidden;display:flex;flex-direction:column;height:100vh}
@@ -598,7 +597,6 @@ function applySettings(){
   buildAll();
 }
 function applyGS(){applySettings()}
-}
 
 /* ── Auto Advance Byes ── */
 function autoAdv(){
@@ -677,12 +675,24 @@ function showShareTab(t){
   event.target.classList.add('active');
 }
 
+async function loadH2C(){
+  if(typeof html2canvas!=='undefined')return true;
+  try{
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+    return true;
+  }catch(e){return false}
+}
+
 async function captureScreenshot(){
   if(!curTab)return;
+  document.getElementById('ss-status').textContent='加载截图库…';
+  if(!await loadH2C()){document.getElementById('ss-status').textContent='截图库加载失败（可能被浏览器拦截），请允许第三方脚本或换浏览器';return}
   document.getElementById('ss-status').textContent='截图中…';
   const panel=document.getElementById('p-'+curTab);
   const cv=document.getElementById('cv-'+curTab);
-  // Temporarily reset transform for clean capture of visible area
   const oldT=cv.style.transform;
   try{
     const canvas=await html2canvas(panel,{backgroundColor:'#1a1a2e',scale:2,useCORS:true,allowTaint:true});
@@ -693,6 +703,8 @@ async function captureScreenshot(){
 
 async function captureFullBracket(){
   if(!curTab)return;
+  document.getElementById('ss-status').textContent='加载截图库…';
+  if(!await loadH2C()){document.getElementById('ss-status').textContent='截图库加载失败（可能被浏览器拦截），请允许第三方脚本或换浏览器';return}
   document.getElementById('ss-status').textContent='正在截取完整赛区（可能较慢）…';
   const cv=document.getElementById('cv-'+curTab);
   const oldT=cv.style.transform;
