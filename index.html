@@ -157,6 +157,7 @@ let DATA={male:[],female:[],other:[],all:[]};
 let RAW=[];  // unfiltered operator list
 let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
+let excludeKeywords='卫戍协议,盟约'; // comma-separated keywords to exclude
 let groupSizes={other:999,male:999,female:80,all:64};
 let tabs=[],curTab=null,views={},pt=null;
 
@@ -300,6 +301,11 @@ function rebuildData(){
       seen[o.base]=true;
       return true;
     });
+  }
+  // Exclude by keywords
+  if(excludeKeywords.trim()){
+    const kws=excludeKeywords.split(',').map(k=>k.trim()).filter(Boolean);
+    if(kws.length)ops=ops.filter(o=>!kws.some(k=>o.cn.includes(k)));
   }
   DATA.male=ops.filter(o=>o.sex==='男');
   DATA.female=ops.filter(o=>o.sex==='女');
@@ -615,6 +621,8 @@ function openSettings(){
   h+=`<option value="separate"${altMode==='separate'?' selected':''}>独立参赛</option>`;
   h+=`<option value="merge"${altMode==='merge'?' selected':''}>合并 (同角色保留一个)</option>`;
   h+='</select></div>';
+  h+=`<div class="srow"><label>排除干员</label><input type="text" id="s-exclude" value="${excludeKeywords}" placeholder="关键词,逗号分隔" style="background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:4px 8px;font-size:13px;flex:1"></div>`;
+  h+='<div style="font-size:11px;color:#666;margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
   h+='<div id="s-gs-area" style="display:flex;flex-direction:column;gap:8px"></div>';
   h+='<div class="sbtns"><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>';
@@ -637,10 +645,16 @@ function openSettings(){
   document.getElementById('settings-ov').classList.add('show');
 }
 function closeSettings(){document.getElementById('settings-ov').classList.remove('show')}
+function addExclude(kw){
+  const inp=document.getElementById('s-exclude');if(!inp)return;
+  const cur=inp.value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!cur.includes(kw)){cur.push(kw);inp.value=cur.join(',')}
+}
 function applySettings(){
   mode=document.getElementById('s-mode').value;
   splitMode=document.getElementById('s-split').value;
   const newAlt=document.getElementById('s-alt').value;
+  const newExclude=document.getElementById('s-exclude')?.value||'';
   if(mode==='gender'){
     groupSizes.male=parseInt(document.getElementById('s-gs-male')?.value)||999;
     groupSizes.female=parseInt(document.getElementById('s-gs-female')?.value)||999;
@@ -648,7 +662,9 @@ function applySettings(){
   }else{
     groupSizes.all=parseInt(document.getElementById('s-gs-all')?.value)||64;
   }
-  if(newAlt!==altMode){altMode=newAlt;rebuildData()}
+  const needRebuild=(newAlt!==altMode||newExclude!==excludeKeywords);
+  altMode=newAlt;excludeKeywords=newExclude;
+  if(needRebuild)rebuildData();
   closeSettings();
   buildAll();
 }
@@ -726,12 +742,12 @@ function cp(){document.getElementById('ov').classList.remove('show');pt=null}
 function saveS(){
   const st={};document.querySelectorAll('.S.W,.S.F').forEach(s=>{
     if(s.id&&parseInt(s.dataset.r)>0)st[s.id]={cn:s.dataset.cn,av:s.dataset.av}});
-  st._cfg={mode,splitMode,altMode,groupSizes:{...groupSizes}};
+  st._cfg={mode,splitMode,altMode,excludeKeywords,groupSizes:{...groupSizes}};
   localStorage.setItem('ak-vanilla-cup',JSON.stringify(st));alert('已保存！')}
 function loadS(){
   const r=localStorage.getItem('ak-vanilla-cup');if(!r){alert('无存档');return}
   const st=JSON.parse(r);
-  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';altMode=st._cfg.altMode||'separate';groupSizes={...groupSizes,...st._cfg.groupSizes};rebuildData();buildAll()}
+  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';altMode=st._cfg.altMode||'separate';excludeKeywords=st._cfg.excludeKeywords||'';groupSizes={...groupSizes,...st._cfg.groupSizes};rebuildData();buildAll()}
   setTimeout(()=>{
     for(const[id,d]of Object.entries(st)){
       if(id.startsWith('_'))continue;
