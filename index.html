@@ -42,6 +42,7 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
 .S.champ{border-color:#f0c040;background:#0f1629}
 .S.champ.W{background:#2a1a0e;box-shadow:0 0 16px rgba(240,192,64,.5)}
 .S img{width:44px;height:44px;border-radius:4px;object-fit:cover}
+.S img.art{object-position:center 15%}
 .nm{font-size:9px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:82px;line-height:1.2}
 .ph{color:#555;font-size:20px}
 .rl{position:absolute;color:#f0c040;font-size:12px;font-weight:bold;text-align:center;width:88px}
@@ -156,11 +157,12 @@ const CW=88,CH=72,GAP=4,RGX=36,CHG=CH+GAP;
 let DATA={male:[],female:[],other:[],all:[]};
 let RAW_OPS=[];   // operators from PRTS
 let RAW_ENEMIES=[]; // enemies from PRTS
+let RAW_STORY=[];  // story characters from PRTS
 let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
 let excludeKeywords='卫戍协议,盟约,领主';
 let dedupSameName=true;
-let pools={operators:true,enemies:false}; // which pools to include
+let pools={operators:true,enemies:false,story:false}; // which pools to include
 let groupSizes={other:32,male:32,female:32,all:32};
 let tabs=[],curTab=null,views={},pt=null;
 
@@ -273,15 +275,21 @@ async function init(){
   try{
     const ops=await fetchOperators();
     RAW_OPS=ops;
-    setProg(80,'加载敌人数据…');
+    setProg(75,'加载敌人数据…');
     try{
       const base=document.baseURI.replace(/[^/]*$/,'');
       const er=await fetch(base+'enemies.json');
       if(er.ok)RAW_ENEMIES=(await er.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isEnemy:true}));
     }catch(e){}
+    setProg(85,'加载剧情角色…');
+    try{
+      const base=document.baseURI.replace(/[^/]*$/,'');
+      const sr=await fetch(base+'story_chars.json');
+      if(sr.ok)RAW_STORY=(await sr.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isStory:true,isArt:true}));
+    }catch(e){}
     rebuildData();
     const total=RAW_OPS.length+RAW_ENEMIES.length;
-    setProg(100,`加载完成！干员 ${RAW_OPS.length} + 敌人 ${RAW_ENEMIES.length}`);
+    setProg(100,`加载完成！干员${RAW_OPS.length} 敌人${RAW_ENEMIES.length} 剧情${RAW_STORY.length}`);
     setTimeout(()=>{
       document.getElementById('loading').style.display='none';
       const m=document.getElementById('main');m.style.display='flex';
@@ -299,6 +307,7 @@ function rebuildData(){
   let ops=[];
   if(pools.operators)ops.push(...RAW_OPS);
   if(pools.enemies)ops.push(...RAW_ENEMIES);
+  if(pools.story)ops.push(...RAW_STORY);
   if(!ops.length)ops=[...RAW_OPS]; // fallback
   if(altMode==='merge'){
     // Sort: prefer versions with known gender, then lower charId (original)
@@ -398,7 +407,7 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
       if(r===0){
         const op=s[i];
         if(!op)html+=`<div class="S bye" id="${sid}" data-r="0" data-cn="" data-av="" style="left:${x}px;top:${y}px"><div class="nm">轮空</div></div>`;
-        else html+=`<div class="S F" id="${sid}" data-r="0" data-cn="${op.cn}" data-av="${op.av}" style="left:${x}px;top:${y}px"><img data-src="${op.av}" loading="lazy"><div class="nm">${op.cn}</div></div>`;
+        else{const ac=op.isArt?' art':'';html+=`<div class="S F" id="${sid}" data-r="0" data-cn="${op.cn}" data-av="${op.av}"${op.isArt?' data-art="1"':''} style="left:${x}px;top:${y}px"><img class="${ac}" data-src="${op.av}" loading="lazy"><div class="nm">${op.cn}</div></div>`;}
       }else{
         const pa=`${gid}-${tag}-r${r-1}-s${i*2}`,pb=`${gid}-${tag}-r${r-1}-s${i*2+1}`;
         html+=`<div class="S E" id="${sid}" data-r="${r}" data-pa="${pa}" data-pb="${pb}" data-cn="" data-av="" style="left:${x}px;top:${y}px" onclick="openPicker(this)"><div class="ph">?</div></div>`;
@@ -644,6 +653,7 @@ function openSettings(){
   h+=`<div class="srow"><label>角色池</label><div style="display:flex;gap:12px">`;
   h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-ops"${pools.operators?' checked':''}> 干员 (${RAW_OPS.length})</label>`;
   h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-enemies"${pools.enemies?' checked':''}> 敌人 (${RAW_ENEMIES.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-story"${pools.story?' checked':''}> 剧情角色 (${RAW_STORY.length})</label>`;
   h+='</div></div>';
   h+='<div class="srow"><label>比赛模式</label><select id="s-mode">';
   h+=`<option value="gender"${mode==='gender'?' selected':''}>按性别分组</option>`;
@@ -693,6 +703,7 @@ function addExclude(kw){
 function applySettings(){
   pools.operators=document.getElementById('s-pool-ops')?.checked??true;
   pools.enemies=document.getElementById('s-pool-enemies')?.checked??false;
+  pools.story=document.getElementById('s-pool-story')?.checked??false;
   mode=document.getElementById('s-mode').value;
   splitMode=document.getElementById('s-split').value;
   const newAlt=document.getElementById('s-alt').value;
@@ -732,7 +743,9 @@ function autoAdv(){
 }
 function sel(s,w){
   s.className='S F W';s.dataset.cn=w.dataset.cn;s.dataset.av=w.dataset.av;
-  s.innerHTML=`<img src="${w.dataset.av}" loading="lazy"><div class="nm">${w.dataset.cn}</div>`;
+  const ac=w.dataset.art?'art':'';
+  if(w.dataset.art)s.dataset.art='1';else delete s.dataset.art;
+  s.innerHTML=`<img class="${ac}" src="${w.dataset.av}" loading="lazy"><div class="nm">${w.dataset.cn}</div>`;
   s.setAttribute('onclick','openPicker(this)');
   syncFinals()}
 
