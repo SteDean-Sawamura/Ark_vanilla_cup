@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>明日方舟香草杯</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;overflow:hidden;display:flex;flex-direction:column;height:100vh}
@@ -58,6 +59,18 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
 .pcl:hover{border-color:#c44;color:#c44}
 .btns{position:fixed;bottom:12px;right:12px;z-index:300;display:flex;gap:6px}
 .btns button{color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px}
+.share-box{background:#16213e;border:2px solid #f0c040;border-radius:12px;padding:20px;width:min(90vw,700px);max-height:85vh;display:flex;flex-direction:column;gap:12px}
+.share-tabs{display:flex;gap:6px}
+.share-tab{background:#0f1629;color:#aaa;border:1px solid #2a4a7a;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px}
+.share-tab.active{background:#1a1a2e;color:#f0c040;border-color:#f0c040}
+.share-panel{display:flex;flex-direction:column;gap:10px}
+#ss-status{color:#888;font-size:13px}
+#ss-preview{max-height:400px;overflow:auto;border-radius:6px}
+#ss-preview img{width:100%;border-radius:4px}
+.share-actions{display:flex;gap:8px;flex-wrap:wrap}
+.share-actions button{background:#2a4a7a;color:#eee;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px}
+.share-actions button:hover{background:#3a6a9a}
+#report-text{width:100%;height:360px;background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:6px;padding:10px;font-size:12px;font-family:"Microsoft YaHei",monospace;resize:vertical}
 </style>
 </head>
 <body>
@@ -73,12 +86,39 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
   <div class="topbar" id="topbar"></div>
   <div class="panels" id="panels"></div>
   <div class="btns">
+    <button style="background:#7a4a2a" onclick="showShare()">📤 分享</button>
     <button style="background:#2a4a7a" onclick="loadS()">📂 读取</button>
     <button style="background:#2a6a3a" onclick="saveS()">💾 保存</button>
   </div>
 </div>
 
 <div class="overlay" id="ov" onclick="if(event.target===this)cp()"><div class="pbox" id="pb"></div></div>
+
+<div class="overlay" id="share-ov" onclick="if(event.target===this)closeShare()">
+  <div class="share-box" id="share-box">
+    <div class="share-tabs">
+      <button class="share-tab active" onclick="showShareTab('screenshot')">📷 截图</button>
+      <button class="share-tab" onclick="showShareTab('report')">📋 战报</button>
+    </div>
+    <div class="share-panel" id="sp-screenshot">
+      <div id="ss-status">点击下方按钮截取当前赛区</div>
+      <div id="ss-preview"></div>
+      <div class="share-actions">
+        <button onclick="captureScreenshot()">📷 截取当前赛区</button>
+        <button onclick="captureFullBracket()">🖼️ 截取完整赛区</button>
+        <button id="ss-dl" style="display:none" onclick="downloadScreenshot()">💾 下载图片</button>
+        <button id="ss-cp" style="display:none" onclick="copyScreenshot()">📋 复制到剪贴板</button>
+      </div>
+    </div>
+    <div class="share-panel" id="sp-report" style="display:none">
+      <textarea id="report-text" readonly></textarea>
+      <div class="share-actions">
+        <button onclick="genReport()">🔄 生成战报</button>
+        <button onclick="copyReport()">📋 复制</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ── Config ── */
@@ -171,9 +211,9 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
   const sz=1<<rnds;
   const s=[...slots];while(s.length<sz)s.push(null);
   let html='';
-  for(let r=0;r<rnds;r++){
+  for(let r=0;r<=rnds;r++){
     const sc=sz>>r,sp=CHG*(1<<r),off=(sp-CH)/2;
-    const x=mirror?xb+(rnds-1-r)*(CW+RGX):xb+r*(CW+RGX);
+    const x=mirror?xb+(rnds-r)*(CW+RGX):xb+r*(CW+RGX);
     for(let i=0;i<sc;i++){
       const y=yb+off+i*sp,sid=`${gid}-${tag}-r${r}-s${i}`;
       if(r===0){
@@ -185,7 +225,7 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
         html+=`<div class="S E" id="${sid}" data-r="${r}" data-pa="${pa}" data-pb="${pb}" data-cn="" data-av="" style="left:${x}px;top:${y}px" onclick="openPicker(this)"><div class="ph">?</div></div>`;
       }
     }
-    if(r<rnds-1){
+    if(r<rnds){
       const ns=CHG*(1<<(r+1)),no=(ns-CH)/2;
       for(let i=0;i<sc;i+=2){
         const y1=yb+off+i*sp+CH/2,y2=yb+off+(i+1)*sp+CH/2,ny=yb+no+(i/2)*ns+CH/2;
@@ -200,7 +240,7 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
       }
     }
   }
-  return{html,winner:`${gid}-${tag}-r${rnds-1}-s0`,h:sz*CHG,w:rnds*(CW+RGX)};
+  return{html,winner:`${gid}-${tag}-r${rnds}-s0`,h:sz*CHG,w:(rnds+1)*(CW+RGX)};
 }
 
 function renderBracket(ops,gid){
@@ -210,9 +250,9 @@ function renderBracket(ops,gid){
   const all=shuffleWithByes(ops,sz);
   const topSlots=all.slice(0,half);
   const botSlots=all.slice(half);
-  const subR=Math.max(1,rnds-1),halfW=subR*(CW+RGX);
-  const rightX=halfW+CW+RGX*2;
   const T=renderHalf(topSlots,gid,'T',0,0,false);
+  const halfW=T.w;
+  const rightX=halfW+CW+RGX*2;
   const B=renderHalf(botSlots,gid,'B',rightX,0,true);
   const bh=Math.max(T.h,B.h);
   const cx=halfW+RGX/2,cy=bh/2-CH/2;
@@ -473,6 +513,143 @@ function loadS(){
       s.innerHTML=`<img src="${d.av}" loading="lazy"><div class="nm">${d.cn}</div>`;
       s.setAttribute('onclick','openPicker(this)')}
     alert('已读取！')},200)}
+
+/* ── Share ── */
+let ssBlob=null;
+function showShare(){document.getElementById('share-ov').classList.add('show');genReport()}
+function closeShare(){document.getElementById('share-ov').classList.remove('show')}
+function showShareTab(t){
+  document.querySelectorAll('.share-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.share-panel').forEach(p=>p.style.display='none');
+  document.getElementById('sp-'+t).style.display='flex';
+  event.target.classList.add('active');
+}
+
+async function captureScreenshot(){
+  if(!curTab)return;
+  document.getElementById('ss-status').textContent='截图中…';
+  const panel=document.getElementById('p-'+curTab);
+  const cv=document.getElementById('cv-'+curTab);
+  // Temporarily reset transform for clean capture of visible area
+  const oldT=cv.style.transform;
+  try{
+    const canvas=await html2canvas(panel,{backgroundColor:'#1a1a2e',scale:2,useCORS:true,allowTaint:true});
+    showScreenshotResult(canvas);
+  }catch(e){document.getElementById('ss-status').textContent='截图失败: '+e.message}
+  cv.style.transform=oldT;
+}
+
+async function captureFullBracket(){
+  if(!curTab)return;
+  document.getElementById('ss-status').textContent='正在截取完整赛区（可能较慢）…';
+  const cv=document.getElementById('cv-'+curTab);
+  const oldT=cv.style.transform;
+  cv.style.transform='none';
+  try{
+    const canvas=await html2canvas(cv,{backgroundColor:'#1a1a2e',scale:1,useCORS:true,allowTaint:true,
+      width:views[curTab].w+100,height:views[curTab].h+60});
+    showScreenshotResult(canvas);
+  }catch(e){document.getElementById('ss-status').textContent='截图失败: '+e.message}
+  cv.style.transform=oldT;
+}
+
+function showScreenshotResult(canvas){
+  canvas.toBlob(blob=>{
+    ssBlob=blob;
+    const url=URL.createObjectURL(blob);
+    document.getElementById('ss-preview').innerHTML=`<img src="${url}">`;
+    document.getElementById('ss-status').textContent=`截图完成 (${canvas.width}×${canvas.height})`;
+    document.getElementById('ss-dl').style.display='';
+    document.getElementById('ss-cp').style.display='';
+  });
+}
+
+function downloadScreenshot(){
+  if(!ssBlob)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(ssBlob);
+  a.download=`香草杯_${curTab||'bracket'}_${Date.now()}.png`;
+  a.click();
+}
+
+async function copyScreenshot(){
+  if(!ssBlob)return;
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'image/png':ssBlob})]);
+    alert('已复制到剪贴板！');
+  }catch(e){alert('复制失败，请右键图片手动复制')}
+}
+
+function genReport(){
+  const lines=['═══ 明日方舟香草杯 战报 ═══',''];
+  const allPanels=document.querySelectorAll('.panel');
+  for(const t of tabs){
+    const panel=document.getElementById('p-'+t.id);
+    if(!panel)continue;
+    const tabBtn=[...document.querySelectorAll('.tab-btn')];
+    const idx=tabs.indexOf(t);
+    const label=tabBtn[idx]?.textContent||t.id;
+    const winners=panel.querySelectorAll('.S.W');
+    if(!winners.length)continue;
+    lines.push(`【${label}】`);
+    // Collect by round
+    const rounds={};
+    winners.forEach(s=>{
+      const r=parseInt(s.dataset.r)||0;
+      if(r<1)return;
+      if(!rounds[r])rounds[r]=[];
+      const pa=document.getElementById(s.dataset.pa);
+      const pb=document.getElementById(s.dataset.pb);
+      const loserA=pa&&pa.dataset.cn&&pa.dataset.cn!==s.dataset.cn?pa.dataset.cn:null;
+      const loserB=pb&&pb.dataset.cn&&pb.dataset.cn!==s.dataset.cn?pb.dataset.cn:null;
+      const loser=loserA||loserB||'轮空';
+      rounds[r].push({winner:s.dataset.cn,loser});
+    });
+    const maxR=Math.max(...Object.keys(rounds).map(Number));
+    for(let r=1;r<=maxR;r++){
+      if(!rounds[r])continue;
+      let rName;
+      if(r===maxR)rName='冠军';
+      else if(r===maxR-1)rName='决赛';
+      else if(r===maxR-2)rName='半决赛';
+      else rName=`第${r+1}轮`;
+      // For champion round, show differently
+      if(r===maxR&&rounds[r].length===1){
+        lines.push(`  🏆 ${rName}: ${rounds[r][0].winner}`);
+      }else{
+        lines.push(`  ${rName}:`);
+        for(const m of rounds[r]){
+          lines.push(`    ${m.winner} > ${m.loser}`);
+        }
+      }
+    }
+    lines.push('');
+  }
+  // Summary line
+  const champs=[];
+  for(const t of tabs){
+    const panel=document.getElementById('p-'+t.id);
+    if(!panel)continue;
+    const champSlot=panel.querySelector('.S.champ.W');
+    if(champSlot&&champSlot.dataset.cn){
+      const idx=tabs.indexOf(t);
+      const label=[...document.querySelectorAll('.tab-btn')][idx]?.textContent||t.id;
+      champs.push(`${label}: ${champSlot.dataset.cn}`);
+    }
+  }
+  if(champs.length){
+    lines.push('══ 冠军一览 ══');
+    champs.forEach(c=>lines.push('  🏆 '+c));
+  }
+  document.getElementById('report-text').value=lines.join('\n');
+}
+
+function copyReport(){
+  const ta=document.getElementById('report-text');
+  ta.select();
+  document.execCommand('copy');
+  alert('战报已复制！');
+}
 
 /* ── Start ── */
 init();
