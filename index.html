@@ -255,13 +255,41 @@ function rebuildData(){
 
 /* ── Shuffle with byes scattered ── */
 function shuffleWithByes(ops,totalSlots){
-  const arr=[];
-  for(const o of ops) arr.push(o);
-  while(arr.length<totalSlots) arr.push(null);
-  for(let i=arr.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
+  // Shuffle operators
+  const sh=[...ops];
+  for(let i=sh.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sh[i],sh[j]]=[sh[j],sh[i]]}
+  const nByes=totalSlots-sh.length;
+  if(nByes<=0)return sh.slice(0,totalSlots);
+  // Place byes at evenly spaced positions with jitter
+  const step=totalSlots/nByes;
+  const byeSet=new Set();
+  for(let i=0;i<nByes;i++){
+    let pos=Math.floor(step*i+Math.random()*step);
+    pos=Math.max(0,Math.min(totalSlots-1,pos));
+    while(byeSet.has(pos))pos=(pos+1)%totalSlots;
+    byeSet.add(pos);
   }
+  // Avoid adjacent byes in same match pair (2k,2k+1) — swap with nearest non-bye
+  const byeArr=[...byeSet].sort((a,b)=>a-b);
+  for(const p of byeArr){
+    const pair=(p%2===0)?p+1:p-1;
+    if(pair>=0&&pair<totalSlots&&byeSet.has(pair)){
+      // Find nearest non-bye to swap with
+      for(let d=1;d<totalSlots;d++){
+        const c1=(pair+d)%totalSlots,c2=(pair-d+totalSlots)%totalSlots;
+        for(const c of [c1,c2]){
+          if(!byeSet.has(c)){
+            const cPair=(c%2===0)?c+1:c-1;
+            if(!byeSet.has(cPair)){byeSet.delete(pair);byeSet.add(c);break}
+          }
+        }
+        if(!byeSet.has(pair))break;
+      }
+    }
+  }
+  const arr=new Array(totalSlots);
+  let oi=0;
+  for(let i=0;i<totalSlots;i++)arr[i]=byeSet.has(i)?null:sh[oi++];
   return arr;
 }
 
