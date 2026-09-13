@@ -157,7 +157,7 @@ let DATA={male:[],female:[],other:[],all:[]};
 let RAW=[];  // unfiltered operator list
 let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
-let excludeKeywords='卫戍协议,盟约'; // comma-separated keywords to exclude
+let excludeKeywords='卫戍协议,盟约,领主'; // comma-separated keywords to exclude
 let groupSizes={other:999,male:999,female:80,all:64};
 let tabs=[],curTab=null,views={},pt=null;
 
@@ -622,7 +622,7 @@ function openSettings(){
   h+=`<option value="merge"${altMode==='merge'?' selected':''}>合并 (同角色保留一个)</option>`;
   h+='</select></div>';
   h+=`<div class="srow"><label>排除干员</label><input type="text" id="s-exclude" value="${excludeKeywords}" placeholder="关键词,逗号分隔" style="background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:4px 8px;font-size:13px;flex:1"></div>`;
-  h+='<div style="font-size:11px;color:#666;margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button></div>';
+  h+='<div style="font-size:11px;color:#666;margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button> <button onclick="addExclude(\'领主\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+领主</button> <button onclick="addExclude(\'盟约\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+盟约</button></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
   h+='<div id="s-gs-area" style="display:flex;flex-direction:column;gap:8px"></div>';
   h+='<div class="sbtns"><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>';
