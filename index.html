@@ -158,11 +158,12 @@ let DATA={male:[],female:[],other:[],all:[]};
 let RAW_OPS=[];   // operators from PRTS
 let RAW_ENEMIES=[]; // enemies from PRTS
 let RAW_STORY=[];  // story characters from PRTS
+let RAW_ITEMS=[];  // items from PRTS
 let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
 let excludeKeywords='卫戍协议,盟约,领主';
 let dedupSameName=true;
-let pools={operators:true,enemies:false,story:false}; // which pools to include
+let pools={operators:true,enemies:false,story:false,items:false}; // which pools to include
 let groupSizes={other:32,male:32,female:32,all:32};
 let tabs=[],curTab=null,views={},pt=null;
 
@@ -287,7 +288,13 @@ async function init(){
       const sr=await fetch(base+'story_chars.json');
       if(sr.ok)RAW_STORY=(await sr.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isStory:true,isArt:true}));
     }catch(e){}
-    setProg(92,'加载覆写数据…');
+    setProg(90,'加载道具数据…');
+    try{
+      const base=document.baseURI.replace(/[^/]*$/,'');
+      const ir=await fetch(base+'items.json');
+      if(ir.ok)RAW_ITEMS=(await ir.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isItem:true}));
+    }catch(e){}
+    setProg(95,'加载覆写数据…');
     try{
       const base=document.baseURI.replace(/[^/]*$/,'');
       const owr=await fetch(base+'overwrites.json');
@@ -299,7 +306,7 @@ async function init(){
     }catch(e){}
     rebuildData();
     const total=RAW_OPS.length+RAW_ENEMIES.length;
-    setProg(100,`加载完成！干员${RAW_OPS.length} 敌人${RAW_ENEMIES.length} 剧情${RAW_STORY.length}`);
+    setProg(100,`加载完成！干员${RAW_OPS.length} 敌人${RAW_ENEMIES.length} 剧情${RAW_STORY.length} 道具${RAW_ITEMS.length}`);
     setTimeout(()=>{
       document.getElementById('loading').style.display='none';
       const m=document.getElementById('main');m.style.display='flex';
@@ -318,6 +325,7 @@ function rebuildData(){
   if(pools.operators)ops.push(...RAW_OPS);
   if(pools.enemies)ops.push(...RAW_ENEMIES);
   if(pools.story)ops.push(...RAW_STORY);
+  if(pools.items)ops.push(...RAW_ITEMS);
   if(!ops.length)ops=[...RAW_OPS]; // fallback
   if(altMode==='merge'){
     // Sort: prefer versions with known gender, then lower charId (original)
@@ -664,6 +672,7 @@ function openSettings(){
   h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-ops"${pools.operators?' checked':''}> 干员 (${RAW_OPS.length})</label>`;
   h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-enemies"${pools.enemies?' checked':''}> 敌人 (${RAW_ENEMIES.length})</label>`;
   h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-story"${pools.story?' checked':''}> 剧情角色 (${RAW_STORY.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-items"${pools.items?' checked':''}> 道具 (${RAW_ITEMS.length})</label>`;
   h+='</div></div>';
   h+='<div class="srow"><label>比赛模式</label><select id="s-mode">';
   h+=`<option value="gender"${mode==='gender'?' selected':''}>按性别分组</option>`;
@@ -714,6 +723,7 @@ function applySettings(){
   pools.operators=document.getElementById('s-pool-ops')?.checked??true;
   pools.enemies=document.getElementById('s-pool-enemies')?.checked??false;
   pools.story=document.getElementById('s-pool-story')?.checked??false;
+  pools.items=document.getElementById('s-pool-items')?.checked??false;
   mode=document.getElementById('s-mode').value;
   splitMode=document.getElementById('s-split').value;
   const newAlt=document.getElementById('s-alt').value;
