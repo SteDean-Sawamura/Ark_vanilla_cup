@@ -295,8 +295,15 @@ function renderFinals(gids,fid){
   return{html,w:(rnds+1)*(CW+RGX+20)+100,h:sz*CHG+60};
 }
 
+let splitMode='fill'; // 'fill' = 满编(每组填满上限) | 'even' = 均分(各组平均)
+
 function splitPool(pool,maxSize){
   if(pool.length<=maxSize)return[pool];
+  if(splitMode==='fill'){
+    const out=[];
+    for(let i=0;i<pool.length;i+=maxSize)out.push(pool.slice(i,i+maxSize));
+    return out;
+  }
   const ng=Math.ceil(pool.length/maxSize);
   const per=Math.ceil(pool.length/ng);
   const out=[];
@@ -360,6 +367,10 @@ function buildAll(){
   cfgHtml+='<select id="mode-sel" onchange="changeMode(this.value)">';
   cfgHtml+=`<option value="gender"${mode==='gender'?' selected':''}>按性别分组</option>`;
   cfgHtml+=`<option value="all"${mode==='all'?' selected':''}>全员混战</option>`;
+  cfgHtml+='</select>';
+  cfgHtml+='<select id="split-sel" onchange="splitMode=this.value;buildAll()">';
+  cfgHtml+=`<option value="fill"${splitMode==='fill'?' selected':''}>满编(填满每组)</option>`;
+  cfgHtml+=`<option value="even"${splitMode==='even'?' selected':''}>均分(各组平均)</option>`;
   cfgHtml+='</select>';
   if(mode==='gender'){
     cfgHtml+=`<label>男</label><input type="number" id="gs-male" value="${groupSizes.male}" min="4" max="999">`;
@@ -499,12 +510,12 @@ function cp(){document.getElementById('ov').classList.remove('show');pt=null}
 function saveS(){
   const st={};document.querySelectorAll('.S.W,.S.F').forEach(s=>{
     if(s.id&&parseInt(s.dataset.r)>0)st[s.id]={cn:s.dataset.cn,av:s.dataset.av}});
-  st._cfg={mode,groupSizes:{...groupSizes}};
+  st._cfg={mode,splitMode,groupSizes:{...groupSizes}};
   localStorage.setItem('ak-vanilla-cup',JSON.stringify(st));alert('已保存！')}
 function loadS(){
   const r=localStorage.getItem('ak-vanilla-cup');if(!r){alert('无存档');return}
   const st=JSON.parse(r);
-  if(st._cfg){mode=st._cfg.mode||'gender';groupSizes={...groupSizes,...st._cfg.groupSizes};buildAll()}
+  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';groupSizes={...groupSizes,...st._cfg.groupSizes};buildAll()}
   setTimeout(()=>{
     for(const[id,d]of Object.entries(st)){
       if(id.startsWith('_'))continue;
