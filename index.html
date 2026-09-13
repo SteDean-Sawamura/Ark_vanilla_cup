@@ -608,7 +608,7 @@ function openSettings(){
   h+=`<option value="merge"${altMode==='merge'?' selected':''}>合并 (同角色保留一个)</option>`;
   h+='</select></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
-  h+='<div class="srow" id="s-gs-area"></div>';
+  h+='<div id="s-gs-area" style="display:flex;flex-direction:column;gap:8px"></div>';
   h+='<div class="sbtns"><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>';
   document.getElementById('settings-box').innerHTML=h;
   // Populate group size inputs based on current mode selection
@@ -616,11 +616,12 @@ function openSettings(){
   function updateGS(){
     const area=document.getElementById('s-gs-area');
     if(msel.value==='gender'){
-      area.innerHTML=`<label>男</label><input type="number" id="s-gs-male" value="${groupSizes.male}" min="4" max="999">`+
-        `<label>女</label><input type="number" id="s-gs-female" value="${groupSizes.female}" min="4" max="999">`+
-        `<label>其他</label><input type="number" id="s-gs-other" value="${groupSizes.other}" min="4" max="999">`;
+      area.innerHTML=
+        `<div class="srow"><label>男</label><input type="number" id="s-gs-male" value="${groupSizes.male}" min="4" max="999"></div>`+
+        `<div class="srow"><label>女</label><input type="number" id="s-gs-female" value="${groupSizes.female}" min="4" max="999"></div>`+
+        `<div class="srow"><label>其他</label><input type="number" id="s-gs-other" value="${groupSizes.other}" min="4" max="999"></div>`;
     }else{
-      area.innerHTML=`<label>全员</label><input type="number" id="s-gs-all" value="${groupSizes.all}" min="4" max="999">`;
+      area.innerHTML=`<div class="srow"><label>全员</label><input type="number" id="s-gs-all" value="${groupSizes.all}" min="4" max="999"></div>`;
     }
   }
   msel.onchange=updateGS;
