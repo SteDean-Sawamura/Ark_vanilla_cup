@@ -302,6 +302,19 @@ function rebuildData(){
       return true;
     });
   }
+  // Always deduplicate exact same-name operators (keep the one with known gender)
+  const byName={};
+  ops.forEach(o=>{
+    if(!byName[o.cn])byName[o.cn]=o;
+    else{
+      const cur=byName[o.cn];
+      const curG=(cur.sex==='男'||cur.sex==='女');
+      const newG=(o.sex==='男'||o.sex==='女');
+      if(!curG&&newG)byName[o.cn]=o;
+    }
+  });
+  ops=Object.values(byName);
+
   // Exclude by keywords
   if(excludeKeywords.trim()){
     const kws=excludeKeywords.split(',').map(k=>k.trim()).filter(Boolean);
