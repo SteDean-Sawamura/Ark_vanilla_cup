@@ -124,22 +124,36 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
 /* ── Config ── */
 const CW=88,CH=72,GAP=4,RGX=36,CHG=CH+GAP;
 let DATA={male:[],female:[],other:[],all:[]};
+let RAW=[];  // unfiltered operator list
 let mode='gender'; // 'gender' | 'all'
+let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
 let groupSizes={other:999,male:999,female:80,all:64};
 let tabs=[],curTab=null,views={},pt=null;
 
 /* ── PRTS Data Fetch ── */
 const API='https://prts.wiki/api.php';
 
+async function fetchWithRetry(url,retries=3){
+  for(let i=0;i<retries;i++){
+    try{const r=await fetch(url);if(r.ok)return r;throw new Error(`HTTP ${r.status}`)}
+    catch(e){if(i===retries-1)throw e;await new Promise(r=>setTimeout(r,1000*(i+1)))}
+  }
+}
+
 async function fetchOperators(){
   setProg(0,'获取干员列表…');
   const url=`${API}?action=cargoquery&tables=chara,chara_extra_info`+
     `&join_on=chara._pageName=chara_extra_info._pageName`+
-    `&fields=chara.cn,chara_extra_info.sex&limit=500&format=json&origin=*`;
-  const r=await fetch(url);
+    `&fields=chara.cn,chara.charId,chara_extra_info.sex&limit=500&format=json&origin=*`;
+  const r=await fetchWithRetry(url);
   const d=await r.json();
   const rows=d.cargoquery||[];
-  const ops=rows.map(r=>({cn:r.title.cn,sex:r.title.sex||'',av:''})).filter(o=>o.cn);
+  const ops=rows.map(r=>{
+    const cid=r.title.charId||'';
+    const m=cid.match(/^char_\d+_(.+)/);
+    const base=m?m[1].replace(/\d+$/,''):'';
+    return{cn:r.title.cn,sex:r.title.sex||'',av:'',charId:cid,base};
+  }).filter(o=>o.cn);
   setProg(20,`获取到 ${ops.length} 位干员，正在加载头像…`);
   await fetchAvatars(ops);
   return ops;
@@ -151,7 +165,7 @@ async function fetchAvatars(ops){
     const batch=ops.slice(i,i+BATCH);
     const titles=batch.map(o=>`File:头像_${o.cn}.png`).join('|');
     const url=`${API}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&format=json&origin=*`;
-    const r=await fetch(url);
+    const r=await fetchWithRetry(url);
     const d=await r.json();
     const pages=d.query?.pages||{};
     const map={};
@@ -177,10 +191,8 @@ function setProg(pct,text){
 async function init(){
   try{
     const ops=await fetchOperators();
-    DATA.male=ops.filter(o=>o.sex==='男');
-    DATA.female=ops.filter(o=>o.sex==='女');
-    DATA.other=ops.filter(o=>o.sex!=='男'&&o.sex!=='女');
-    DATA.all=[...ops];
+    RAW=ops;
+    rebuildData();
     setProg(100,`加载完成！共 ${ops.length} 位干员`);
     setTimeout(()=>{
       document.getElementById('loading').style.display='none';
@@ -190,6 +202,24 @@ async function init(){
   }catch(e){
     setProg(0,'加载失败: '+e.message+'。请刷新重试。');
   }
+}
+
+/* ── Data filtering ── */
+function rebuildData(){
+  let ops=RAW;
+  if(altMode==='merge'){
+    const seen={};
+    ops=ops.filter(o=>{
+      if(!o.base)return true;
+      if(seen[o.base])return false;
+      seen[o.base]=true;
+      return true;
+    });
+  }
+  DATA.male=ops.filter(o=>o.sex==='男');
+  DATA.female=ops.filter(o=>o.sex==='女');
+  DATA.other=ops.filter(o=>o.sex!=='男'&&o.sex!=='女');
+  DATA.all=[...ops];
 }
 
 /* ── Shuffle with byes scattered ── */
@@ -372,6 +402,10 @@ function buildAll(){
   cfgHtml+=`<option value="fill"${splitMode==='fill'?' selected':''}>满编(填满每组)</option>`;
   cfgHtml+=`<option value="even"${splitMode==='even'?' selected':''}>均分(各组平均)</option>`;
   cfgHtml+='</select>';
+  cfgHtml+='<select id="alt-sel" onchange="altMode=this.value;rebuildData();buildAll()">';
+  cfgHtml+=`<option value="separate"${altMode==='separate'?' selected':''}>异格独立</option>`;
+  cfgHtml+=`<option value="merge"${altMode==='merge'?' selected':''}>异格合并</option>`;
+  cfgHtml+='</select>';
   if(mode==='gender'){
     cfgHtml+=`<label>男</label><input type="number" id="gs-male" value="${groupSizes.male}" min="4" max="999">`;
     cfgHtml+=`<label>女</label><input type="number" id="gs-female" value="${groupSizes.female}" min="4" max="999">`;
@@ -510,12 +544,12 @@ function cp(){document.getElementById('ov').classList.remove('show');pt=null}
 function saveS(){
   const st={};document.querySelectorAll('.S.W,.S.F').forEach(s=>{
     if(s.id&&parseInt(s.dataset.r)>0)st[s.id]={cn:s.dataset.cn,av:s.dataset.av}});
-  st._cfg={mode,splitMode,groupSizes:{...groupSizes}};
+  st._cfg={mode,splitMode,altMode,groupSizes:{...groupSizes}};
   localStorage.setItem('ak-vanilla-cup',JSON.stringify(st));alert('已保存！')}
 function loadS(){
   const r=localStorage.getItem('ak-vanilla-cup');if(!r){alert('无存档');return}
   const st=JSON.parse(r);
-  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';groupSizes={...groupSizes,...st._cfg.groupSizes};buildAll()}
+  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';altMode=st._cfg.altMode||'separate';groupSizes={...groupSizes,...st._cfg.groupSizes};rebuildData();buildAll()}
   setTimeout(()=>{
     for(const[id,d]of Object.entries(st)){
       if(id.startsWith('_'))continue;
