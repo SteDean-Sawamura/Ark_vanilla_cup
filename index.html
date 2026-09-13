@@ -158,7 +158,8 @@ let RAW=[];  // unfiltered operator list
 let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
 let excludeKeywords='卫戍协议,盟约,领主'; // comma-separated keywords to exclude
-let groupSizes={other:999,male:999,female:80,all:64};
+let dedupSameName=true; // deduplicate exact same-name operators
+let groupSizes={other:32,male:32,female:32,all:32};
 let tabs=[],curTab=null,views={},pt=null;
 
 /* ── PRTS Data Fetch ── */
@@ -283,6 +284,8 @@ async function init(){
 }
 
 /* ── Data filtering ── */
+function shuffleArr(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
 function rebuildData(){
   let ops=[...RAW];
   if(altMode==='merge'){
@@ -302,18 +305,20 @@ function rebuildData(){
       return true;
     });
   }
-  // Always deduplicate exact same-name operators (keep the one with known gender)
-  const byName={};
-  ops.forEach(o=>{
-    if(!byName[o.cn])byName[o.cn]=o;
-    else{
-      const cur=byName[o.cn];
-      const curG=(cur.sex==='男'||cur.sex==='女');
-      const newG=(o.sex==='男'||o.sex==='女');
-      if(!curG&&newG)byName[o.cn]=o;
-    }
-  });
-  ops=Object.values(byName);
+  // Deduplicate exact same-name operators (keep the one with known gender)
+  if(dedupSameName){
+    const byName={};
+    ops.forEach(o=>{
+      if(!byName[o.cn])byName[o.cn]=o;
+      else{
+        const cur=byName[o.cn];
+        const curG=(cur.sex==='男'||cur.sex==='女');
+        const newG=(o.sex==='男'||o.sex==='女');
+        if(!curG&&newG)byName[o.cn]=o;
+      }
+    });
+    ops=Object.values(byName);
+  }
 
   // Exclude by keywords
   if(excludeKeywords.trim()){
@@ -487,7 +492,7 @@ function buildAll(){
       {key:'female',label:'女性',icon:'♀'}
     ];
     for(const cat of cats){
-      const pool=DATA[cat.key];
+      const pool=shuffleArr(DATA[cat.key]);
       if(!pool.length)continue;
       const gs=groupSizes[cat.key];
       const groups=splitPool(pool,gs);
@@ -506,7 +511,7 @@ function buildAll(){
       bar.innerHTML+='<div class="sep"></div>';
     }
   }else{
-    const pool=DATA.all;
+    const pool=shuffleArr(DATA.all);
     const gs=groupSizes.all;
     const groups=splitPool(pool,gs);
     if(groups.length===1){
@@ -634,6 +639,10 @@ function openSettings(){
   h+=`<option value="separate"${altMode==='separate'?' selected':''}>独立参赛</option>`;
   h+=`<option value="merge"${altMode==='merge'?' selected':''}>合并 (同角色保留一个)</option>`;
   h+='</select></div>';
+  h+=`<div class="srow"><label>同名去重</label><select id="s-dedup">`;
+  h+=`<option value="yes"${dedupSameName?' selected':''}>去重 (如暮落)</option>`;
+  h+=`<option value="no"${!dedupSameName?' selected':''}>保留全部</option>`;
+  h+='</select></div>';
   h+=`<div class="srow"><label>排除干员</label><input type="text" id="s-exclude" value="${excludeKeywords}" placeholder="关键词,逗号分隔" style="background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:4px 8px;font-size:13px;flex:1"></div>`;
   h+='<div style="font-size:11px;color:#666;margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button> <button onclick="addExclude(\'领主\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+领主</button> <button onclick="addExclude(\'盟约\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+盟约</button></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
@@ -668,6 +677,7 @@ function applySettings(){
   splitMode=document.getElementById('s-split').value;
   const newAlt=document.getElementById('s-alt').value;
   const newExclude=document.getElementById('s-exclude')?.value||'';
+  const newDedup=document.getElementById('s-dedup')?.value==='yes';
   if(mode==='gender'){
     groupSizes.male=parseInt(document.getElementById('s-gs-male')?.value)||999;
     groupSizes.female=parseInt(document.getElementById('s-gs-female')?.value)||999;
@@ -675,8 +685,8 @@ function applySettings(){
   }else{
     groupSizes.all=parseInt(document.getElementById('s-gs-all')?.value)||64;
   }
-  const needRebuild=(newAlt!==altMode||newExclude!==excludeKeywords);
-  altMode=newAlt;excludeKeywords=newExclude;
+  const needRebuild=(newAlt!==altMode||newExclude!==excludeKeywords||newDedup!==dedupSameName);
+  altMode=newAlt;excludeKeywords=newExclude;dedupSameName=newDedup;
   if(needRebuild)rebuildData();
   closeSettings();
   buildAll();
@@ -755,12 +765,12 @@ function cp(){document.getElementById('ov').classList.remove('show');pt=null}
 function saveS(){
   const st={};document.querySelectorAll('.S.W,.S.F').forEach(s=>{
     if(s.id&&parseInt(s.dataset.r)>0)st[s.id]={cn:s.dataset.cn,av:s.dataset.av}});
-  st._cfg={mode,splitMode,altMode,excludeKeywords,groupSizes:{...groupSizes}};
+  st._cfg={mode,splitMode,altMode,excludeKeywords,dedupSameName,groupSizes:{...groupSizes}};
   localStorage.setItem('ak-vanilla-cup',JSON.stringify(st));alert('已保存！')}
 function loadS(){
   const r=localStorage.getItem('ak-vanilla-cup');if(!r){alert('无存档');return}
   const st=JSON.parse(r);
-  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';altMode=st._cfg.altMode||'separate';excludeKeywords=st._cfg.excludeKeywords||'';groupSizes={...groupSizes,...st._cfg.groupSizes};rebuildData();buildAll()}
+  if(st._cfg){mode=st._cfg.mode||'gender';splitMode=st._cfg.splitMode||'fill';altMode=st._cfg.altMode||'separate';excludeKeywords=st._cfg.excludeKeywords||'';dedupSameName=st._cfg.dedupSameName!==false;groupSizes={...groupSizes,...st._cfg.groupSizes};rebuildData();buildAll()}
   setTimeout(()=>{
     for(const[id,d]of Object.entries(st)){
       if(id.startsWith('_'))continue;
