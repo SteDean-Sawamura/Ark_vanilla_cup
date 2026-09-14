@@ -631,7 +631,7 @@ function buildAll(){
   // Toolbar (fixed right side)
   const tb=document.getElementById('toolbar');
   tb.innerHTML='<button onclick="openSettings()">⚙ 设置</button>'+
-    '<button onclick="showShuffleMenu()" style="background:#6a3a2a;border-color:#6a3a2a">🎲 打乱</button>'+
+    '<button onclick="showShuffleMenu()" style="background:#6a3a2a;border-color:#6a3a2a;color:#eee">🎲 打乱</button>'+
     '<button onclick="zm(1.3)">＋</button><button onclick="zm(.7)">－</button>'+
     '<button onclick="rvTab(curTab)">重置</button>'+
     `<button onclick="toggleTheme()">${document.documentElement.dataset.theme==='light'?'🌙':'☀️'}</button>`;
