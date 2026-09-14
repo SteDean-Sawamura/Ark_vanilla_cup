@@ -465,7 +465,10 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
       }
     }
   }
-  return{html,winner:`${gid}-${tag}-r${rnds}-s0`,h:sz*CHG,w:(rnds+1)*(CW+RGX)};
+  const winSp=CHG*(1<<rnds),winOff=(winSp-CH)/2;
+  const winX=mirror?xb:xb+rnds*(CW+RGX);
+  const winY=yb+winOff;
+  return{html,winner:`${gid}-${tag}-r${rnds}-s0`,h:sz*CHG,w:(rnds+1)*(CW+RGX),wx:winX,wy:winY};
 }
 
 function renderBracket(ops,gid){
@@ -481,11 +484,22 @@ function renderBracket(ops,gid){
   const B=renderHalf(botSlots,gid,'B',rightX,0,true);
   const bh=Math.max(T.h,B.h);
   const champW=CW+20,champH=CH+16;
-  const cx=(halfW+rightX)/2-champW/2;
+  // Champion centered between two winners
+  const lx=T.wx+CW,rx=B.wx; // left winner right edge, right winner left edge
+  const cx=(lx+rx)/2-champW/2;
   const cy=bh/2-champH/2;
   const fid=`${gid}-champ`;
+  // Connector lines from winners to champion
+  const lcy=T.wy+CH/2,rcy=B.wy+CH/2,ccy=cy+champH/2;
+  let conns='';
+  // Left winner → champion
+  const lsx=lx,lex=cx,lsy=Math.min(lcy,ccy)-2,lsh=Math.abs(lcy-ccy)+4;
+  conns+=`<svg class="cn" style="left:${lsx}px;top:${lsy}px;width:${lex-lsx}px;height:${lsh}px"><line x1="0" y1="${lcy-lsy}" x2="${lex-lsx}" y2="${ccy-lsy}" stroke="#f0c040" stroke-width="1.5" stroke-dasharray="4,3"/></svg>`;
+  // Right winner → champion
+  const rsx=cx+champW,rex=rx,rsy=Math.min(rcy,ccy)-2,rsh=Math.abs(rcy-ccy)+4;
+  conns+=`<svg class="cn" style="left:${rsx}px;top:${rsy}px;width:${rex-rsx}px;height:${rsh}px"><line x1="0" y1="${ccy-rsy}" x2="${rex-rsx}" y2="${rcy-rsy}" stroke="#f0c040" stroke-width="1.5" stroke-dasharray="4,3"/></svg>`;
   const champ=`<div class="rl" style="left:${cx}px;top:${cy-24}px;width:${champW}px">冠军</div><div class="S E champ" id="${fid}" data-pa="${T.winner}" data-pb="${B.winner}" data-cn="" data-av="" style="left:${cx}px;top:${cy}px;width:${champW}px;height:${champH}px" onclick="openPicker(this)"><div class="ph" style="font-size:28px">👑</div></div>`;
-  return{html:T.html+B.html+champ,w:halfW*2+CW*3+RGX*4,h:bh+60};
+  return{html:T.html+B.html+conns+champ,w:halfW*2+CW*3+RGX*4,h:bh+60};
 }
 
 function renderFinals(gids,fid){
@@ -687,7 +701,11 @@ function wireUpPanels(){
 function apV(g){const v=views[g],cv=document.getElementById('cv-'+g);if(cv)cv.style.transform=`translate(${v.tx}px,${v.ty}px) scale(${v.s})`}
 function rvTab(g){
   const v=views[g],p=document.getElementById('p-'+g);if(!v||!p)return;
-  v.s=Math.min(p.clientWidth/v.w,(p.clientHeight||innerHeight-60)/v.h)*.85;v.tx=50;v.ty=50;apV(g)}
+  const pw=p.clientWidth||innerWidth,ph=p.clientHeight||(innerHeight-60);
+  v.s=Math.min(pw/v.w,ph/v.h)*.85;
+  v.tx=(pw-v.w*v.s)/2;
+  v.ty=(ph-v.h*v.s)/2;
+  apV(g)}
 function zm(f){if(!curTab)return;const v=views[curTab],cx=innerWidth/2,cy=innerHeight/2;v.tx=cx-(cx-v.tx)*f;v.ty=cy-(cy-v.ty)*f;v.s*=f;apV(curTab)}
 function loadImgs(g){
   if(views[g]?.loaded)return;
