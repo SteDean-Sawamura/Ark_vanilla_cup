@@ -292,7 +292,7 @@ async function init(){
     try{
       const base=document.baseURI.replace(/[^/]*$/,'');
       const ir=await fetch(base+'items.json');
-      if(ir.ok)RAW_ITEMS=(await ir.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isItem:true}));
+      if(ir.ok)RAW_ITEMS=(await ir.json()).map(e=>({cn:e.cn,sex:'',av:e.av||'',charId:'',base:'',isItem:true,cat:e.cat||'未分类'}));
     }catch(e){}
     setProg(95,'加载覆写数据…');
     try{
@@ -368,6 +368,13 @@ function rebuildData(){
   DATA.female=ops.filter(o=>o.sex==='女');
   DATA.other=ops.filter(o=>o.sex!=='男'&&o.sex!=='女');
   DATA.all=[...ops];
+  // Build category groups (for items)
+  DATA.cats={};
+  for(const o of ops){
+    const c=o.cat||'未分类';
+    if(!DATA.cats[c])DATA.cats[c]=[];
+    DATA.cats[c].push(o);
+  }
 }
 
 /* ── Shuffle with byes scattered ── */
@@ -550,6 +557,27 @@ function buildAll(){
       }
       bar.innerHTML+='<div class="sep"></div>';
     }
+  }else if(mode==='category'){
+    const catNames=Object.keys(DATA.cats).sort((a,b)=>(DATA.cats[b]?.length||0)-(DATA.cats[a]?.length||0));
+    for(const catName of catNames){
+      const pool=shuffleArr(DATA.cats[catName]);
+      if(!pool.length)continue;
+      const safeName=catName.replace(/[^a-zA-Z0-9一-鿿]/g,'');
+      const gs=groupSizes.all||32;
+      const groups=splitPool(pool,gs);
+      if(groups.length===1){
+        addBracketTab(`cat_${safeName}`,`${catName} (${pool.length})`,pool);
+      }else{
+        const gids=[];
+        for(let i=0;i<groups.length;i++){
+          const tid=`cat_${safeName}_${i}`;
+          addBracketTab(tid,`${catName}${String.fromCharCode(65+i)} (${groups[i].length})`,groups[i]);
+          gids.push(tid);
+        }
+        addFinalsTab(`cat_${safeName}_f`,`${catName}决赛`,gids);
+      }
+      bar.innerHTML+='<div class="sep"></div>';
+    }
   }else{
     const pool=shuffleArr(DATA.all);
     const gs=groupSizes.all;
@@ -669,14 +697,15 @@ function changeMode(m){mode=m;buildAll()}
 function openSettings(){
   let h='<h2>⚙ 赛事设置</h2>';
   h+=`<div class="srow"><label>角色池</label><div style="display:flex;gap:12px">`;
-  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-ops"${pools.operators?' checked':''}> 干员 (${RAW_OPS.length})</label>`;
-  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-enemies"${pools.enemies?' checked':''}> 敌人 (${RAW_ENEMIES.length})</label>`;
-  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-story"${pools.story?' checked':''}> 剧情角色 (${RAW_STORY.length})</label>`;
-  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-items"${pools.items?' checked':''}> 道具 (${RAW_ITEMS.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-ops"${pools.operators?' checked':''} onchange="poolToggle('char',this)"> 干员 (${RAW_OPS.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-enemies"${pools.enemies?' checked':''} onchange="poolToggle('char',this)"> 敌人 (${RAW_ENEMIES.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-story"${pools.story?' checked':''} onchange="poolToggle('char',this)"> 剧情角色 (${RAW_STORY.length})</label>`;
+  h+=`<label style="min-width:auto;cursor:pointer"><input type="checkbox" id="s-pool-items"${pools.items?' checked':''} onchange="poolToggle('item',this)"> 道具 (${RAW_ITEMS.length})</label>`;
   h+='</div></div>';
   h+='<div class="srow"><label>比赛模式</label><select id="s-mode">';
   h+=`<option value="gender"${mode==='gender'?' selected':''}>按性别分组</option>`;
   h+=`<option value="all"${mode==='all'?' selected':''}>全员混战</option>`;
+  h+=`<option value="category"${mode==='category'?' selected':''}>按道具分类</option>`;
   h+='</select></div>';
   h+='<div class="srow"><label>分组方式</label><select id="s-split">';
   h+=`<option value="fill"${splitMode==='fill'?' selected':''}>满编 (填满每组)</option>`;
@@ -714,6 +743,17 @@ function openSettings(){
   document.getElementById('settings-ov').classList.add('show');
 }
 function closeSettings(){document.getElementById('settings-ov').classList.remove('show')}
+function poolToggle(type,el){
+  if(type==='item'&&el.checked){
+    ['s-pool-ops','s-pool-enemies','s-pool-story'].forEach(id=>{const e=document.getElementById(id);if(e)e.checked=false});
+    const msel=document.getElementById('s-mode');
+    if(msel&&msel.value==='gender')msel.value='category';
+  }else if(type==='char'&&el.checked){
+    const e=document.getElementById('s-pool-items');if(e)e.checked=false;
+    const msel=document.getElementById('s-mode');
+    if(msel&&msel.value==='category')msel.value='gender';
+  }
+}
 function addExclude(kw){
   const inp=document.getElementById('s-exclude');if(!inp)return;
   const cur=inp.value.split(',').map(s=>s.trim()).filter(Boolean);
