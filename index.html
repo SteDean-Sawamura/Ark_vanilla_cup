@@ -633,6 +633,9 @@ function buildAll(){
     '<button onclick="rvTab(curTab)">重置</button>';
 
   wireUpPanels();
+  // Tab scroll: convert vertical wheel to horizontal scroll
+  const ts=document.getElementById('tabscroll');
+  if(ts)ts.addEventListener('wheel',e=>{e.preventDefault();ts.scrollLeft+=e.deltaY},{passive:false});
   const restoreIdx=Math.min(Math.max(0,prevIdx),tabs.length-1);
   if(tabs.length)switchTab(tabs[restoreIdx].id);
   setTimeout(()=>{autoAdv();syncFinals()},100);
