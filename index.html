@@ -16,19 +16,17 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei","PingFang SC",s
 #prog-text{font-size:13px;color:#aaa}
 /* Main UI */
 #main{display:none;flex-direction:column;height:100vh}
-.topbar{display:flex;align-items:center;background:#0f1629;border-bottom:2px solid #2a4a7a;padding:4px 10px;gap:4px;z-index:200;flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#2a4a7a transparent}
-.topbar::-webkit-scrollbar{height:4px}
-.topbar::-webkit-scrollbar-thumb{background:#2a4a7a;border-radius:2px}
-.tab-btn{background:#16213e;color:#aaa;border:1px solid #2a4a7a;border-bottom:none;border-radius:6px 6px 0 0;padding:5px 12px;cursor:pointer;font-size:13px;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.topbar{display:flex;align-items:stretch;background:#0f1629;border-bottom:2px solid #2a4a7a;z-index:200;flex-shrink:0;height:auto}
+.tab-scroll{display:flex;align-items:center;gap:4px;padding:6px 10px;overflow-x:auto;overflow-y:hidden;flex:1;min-width:0;scrollbar-width:thin;scrollbar-color:#2a4a7a transparent;-webkit-overflow-scrolling:touch}
+.tab-scroll::-webkit-scrollbar{height:3px}
+.tab-scroll::-webkit-scrollbar-thumb{background:#2a4a7a;border-radius:2px}
+.toolbar{display:flex;align-items:center;gap:5px;padding:6px 10px;flex-shrink:0;border-left:1px solid #2a4a7a;background:#0a1020}
+.toolbar button{background:#16213e;color:#eee;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:14px;white-space:nowrap;transition:all .15s}
+.toolbar button:hover{background:#1a3a5c;transform:translateY(-1px)}
+.tab-btn{background:#16213e;color:#aaa;border:1px solid #2a4a7a;border-bottom:none;border-radius:6px 6px 0 0;padding:6px 14px;cursor:pointer;font-size:14px;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn:hover{color:#eee;background:#1a3a5c}
 .tab-btn.active{background:#1a1a2e;color:#f0c040;font-weight:bold;border-color:#f0c040}
 .sep{width:1px;height:24px;background:#2a4a7a;margin:0 2px;flex-shrink:0}
-.cfg{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
-.cfg label{font-size:12px;color:#888}
-.cfg input[type=number]{width:52px;background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center}
-.cfg select{background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:2px 6px;font-size:12px}
-.cfg button{background:#16213e;color:#eee;border:1px solid #555;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px;white-space:nowrap}
-.cfg button:hover{background:#1a3a5c}
 .panels{flex:1;position:relative}
 .panel{display:none;position:absolute;inset:0;overflow:hidden;cursor:grab}
 .panel.act{display:block}
@@ -69,9 +67,11 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei","PingFang SC",s
 .btns button:hover{transform:translateY(-1px)}
 /* Mobile */
 @media(max-width:600px){
-  .topbar{padding:3px 6px;gap:3px}
-  .tab-btn{padding:4px 8px;font-size:11px}
-  .cfg button{padding:4px 6px;font-size:11px}
+  .topbar{flex-wrap:wrap}
+  .tab-scroll{padding:4px 6px;gap:3px;order:2;width:100%;border-top:1px solid #1a2a4e}
+  .toolbar{order:1;width:100%;border-left:none;justify-content:center;padding:4px 6px;gap:4px}
+  .toolbar button{padding:5px 8px;font-size:12px}
+  .tab-btn{padding:4px 8px;font-size:12px}
   .btns{bottom:8px;right:8px;gap:4px}
   .btns button{padding:6px 10px;font-size:11px}
   .pbox{padding:12px;gap:12px;flex-wrap:wrap}
@@ -119,7 +119,10 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei","PingFang SC",s
 </div>
 
 <div id="main">
-  <div class="topbar" id="topbar"></div>
+  <div class="topbar">
+    <div class="tab-scroll" id="tabscroll"></div>
+    <div class="toolbar" id="toolbar"></div>
+  </div>
   <div class="panels" id="panels"></div>
   <div class="btns">
     <button style="background:#7a4a2a" onclick="showShare()">📤 分享</button>
@@ -477,9 +480,11 @@ function renderBracket(ops,gid){
   const rightX=halfW+CW+RGX*2;
   const B=renderHalf(botSlots,gid,'B',rightX,0,true);
   const bh=Math.max(T.h,B.h);
-  const cx=halfW+RGX/2,cy=bh/2-CH/2;
+  const champW=CW+20,champH=CH+16;
+  const cx=(halfW+rightX)/2-champW/2;
+  const cy=bh/2-champH/2;
   const fid=`${gid}-champ`;
-  const champ=`<div class="rl" style="left:${cx}px;top:${cy-24}px;width:${CW+20}px">冠军</div><div class="S E champ" id="${fid}" data-pa="${T.winner}" data-pb="${B.winner}" data-cn="" data-av="" style="left:${cx}px;top:${cy}px;width:${CW+20}px;height:${CH+16}px" onclick="openPicker(this)"><div class="ph" style="font-size:28px">👑</div></div>`;
+  const champ=`<div class="rl" style="left:${cx}px;top:${cy-24}px;width:${champW}px">冠军</div><div class="S E champ" id="${fid}" data-pa="${T.winner}" data-pb="${B.winner}" data-cn="" data-av="" style="left:${cx}px;top:${cy}px;width:${champW}px;height:${champH}px" onclick="openPicker(this)"><div class="ph" style="font-size:28px">👑</div></div>`;
   return{html:T.html+B.html+champ,w:halfW*2+CW*3+RGX*4,h:bh+60};
 }
 
@@ -536,7 +541,7 @@ function splitPool(pool,maxSize){
 /* ── Build All Tabs ── */
 function buildAll(){
   const prevIdx=tabs.findIndex(t=>t.id===curTab);
-  const bar=document.getElementById('topbar');
+  const bar=document.getElementById('tabscroll');
   const panels=document.getElementById('panels');
   bar.innerHTML='';panels.innerHTML='';
   tabs=[];views={};
@@ -606,14 +611,12 @@ function buildAll(){
     bar.innerHTML+='<div class="sep"></div>';
   }
 
-  // Action buttons (settings moved to modal)
-  let cfgHtml='<div class="cfg">';
-  cfgHtml+='<button onclick="openSettings()">⚙ 设置</button>';
-  cfgHtml+='<button onclick="showShuffleMenu()" style="background:#6a3a2a">🎲 打乱</button>';
-  cfgHtml+='<button onclick="zm(1.3)">+</button><button onclick="zm(.7)">−</button>';
-  cfgHtml+='<button onclick="rvTab(curTab)">重置视图</button>';
-  cfgHtml+='</div>';
-  bar.innerHTML+=cfgHtml;
+  // Toolbar (fixed right side)
+  const tb=document.getElementById('toolbar');
+  tb.innerHTML='<button onclick="openSettings()">⚙ 设置</button>'+
+    '<button onclick="showShuffleMenu()" style="background:#6a3a2a;border-color:#6a3a2a">🎲 打乱</button>'+
+    '<button onclick="zm(1.3)">＋</button><button onclick="zm(.7)">－</button>'+
+    '<button onclick="rvTab(curTab)">重置</button>';
 
   wireUpPanels();
   const restoreIdx=Math.min(Math.max(0,prevIdx),tabs.length-1);
@@ -624,7 +627,7 @@ function buildAll(){
 function addBracketTab(tid,label,ops){
   const b=renderBracket(ops,tid);
   tabs.push({id:tid});
-  const bar=document.getElementById('topbar');
+  const bar=document.getElementById('tabscroll');
   const panels=document.getElementById('panels');
   bar.innerHTML+=`<div class="tab-btn" onclick="switchTab('${tid}')">${label}</div>`;
   panels.innerHTML+=`<div class="panel" id="p-${tid}"><div class="cv" id="cv-${tid}" style="width:${b.w}px;height:${b.h}px">${b.html}</div></div>`;
@@ -634,7 +637,7 @@ function addBracketTab(tid,label,ops){
 function addFinalsTab(tid,label,gids){
   const f=renderFinals(gids,tid);
   tabs.push({id:tid,isFinal:true});
-  const bar=document.getElementById('topbar');
+  const bar=document.getElementById('tabscroll');
   const panels=document.getElementById('panels');
   bar.innerHTML+=`<div class="tab-btn" onclick="switchTab('${tid}')">${label}</div>`;
   panels.innerHTML+=`<div class="panel" id="p-${tid}"><div class="cv" id="cv-${tid}" style="width:${f.w}px;height:${f.h}px">${f.html}</div></div>`;
