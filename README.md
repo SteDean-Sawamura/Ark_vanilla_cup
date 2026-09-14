@@ -12,12 +12,12 @@
 
 ## 角色池
 
-| 池 | 数量 | 说明 |
-|---|---|---|
-| 干员 | 460+ | 全部可获取干员，含头像 |
-| 敌人 | 1800+ | 全部关卡敌人，含头像 |
-| 剧情角色 | 520+ | 剧情中登场的 NPC，立绘裁剪为头像 |
-| 道具 | 1380+ | 全部游戏道具，含图标（趣味赛） |
+| 池       | 数量  | 说明                             |
+| -------- | ----- | -------------------------------- |
+| 干员     | 460+  | 全部可获取干员，含头像           |
+| 敌人     | 1800+ | 全部关卡敌人，含头像             |
+| 剧情角色 | 520+  | 剧情中登场的 NPC，立绘裁剪为头像 |
+| 道具     | 1380+ | 全部游戏道具，含图标（趣味赛）   |
 
 设置面板中可任意勾选组合，支持混池或单独比赛。
 
@@ -29,7 +29,10 @@
 - **异格干员** 可选独立参赛或合并为同一角色
 - **同名去重** 自动合并跨池同名角色
 - **排除关键词** 过滤卫戍协议、预备干员等，支持自定义
+- **🎯 选择参赛角色** 按角色池分组浏览，搜索 + 多选，自由挑选参赛者
+- **🔄 手动交换对手** 交换模式下点击两个首轮位置互换，自定义对决安排
 - **overwrites.json** 手动覆写角色属性（已预填 637 个角色性别）
+- **深色 / 浅色主题** 一键切换，偏好自动保存
 - 自定义每组人数上限，自动拆分 Tab + 总决赛
 - 左右对称淘汰赛布局，冠军在正中汇合，金色虚线连接
 - 点击空位选择胜者，支持清除和级联重置
@@ -41,19 +44,19 @@
 
 ## 数据文件
 
-| 文件 | 说明 |
-|---|---|
-| `operators.json` | 干员数据（名称/性别/头像/charId） |
-| `enemies.json` | 敌人数据（名称/头像） |
-| `story_chars.json` | 剧情角色数据（名称/立绘） |
-| `items.json` | 道具数据（名称/图标） |
-| `overwrites.json` | 手动覆写（性别等），不会被数据更新覆盖 |
+| 文件                 | 说明                                   |
+| -------------------- | -------------------------------------- |
+| `operators.json`   | 干员数据（名称/性别/头像/charId）      |
+| `enemies.json`     | 敌人数据（名称/头像）                  |
+| `story_chars.json` | 剧情角色数据（名称/立绘）              |
+| `items.json`       | 道具数据（名称/图标）                  |
+| `overwrites.json`  | 手动覆写（性别等），不会被数据更新覆盖 |
 
 所有数据来自 [PRTS Wiki](https://prts.wiki)（明日方舟中文 Wiki）。
 
 ---
 
-# Arknights Vanilla Cup
+# Arknights Vanilla Cup-Most Fxxkable Man/Woman/Non-binary
 
 An all-character elimination tournament bracket generator for Arknights. No installation required.
 
@@ -67,12 +70,12 @@ All data is pre-cached in the repository. The page automatically checks PRTS for
 
 ## Character Pools
 
-| Pool | Count | Description |
-|---|---|---|
-| Operators | 460+ | All obtainable operators with avatars |
-| Enemies | 1800+ | All stage enemies with portraits |
-| Story Characters | 520+ | NPCs from story chapters, art cropped as avatars |
-| Items | 1380+ | All game items with icons (fun bracket) |
+| Pool             | Count | Description                                      |
+| ---------------- | ----- | ------------------------------------------------ |
+| Operators        | 460+  | All obtainable operators with avatars            |
+| Enemies          | 1800+ | All stage enemies with portraits                 |
+| Story Characters | 520+  | NPCs from story chapters, art cropped as avatars |
+| Items            | 1380+ | All game items with icons (fun bracket)          |
 
 Mix and match pools freely in the settings panel.
 
@@ -84,7 +87,10 @@ Mix and match pools freely in the settings panel.
 - **Alter operator** merge (combine alternate versions of the same character)
 - **Same-name dedup** across pools
 - **Exclude keywords** — filter out Stationary Security / Reserve Operators, etc.
+- **🎯 Character selection** — browse by pool, search + multi-select to pick participants
+- **🔄 Manual matchup swap** — swap mode lets you click two first-round slots to exchange positions
 - **overwrites.json** — manually override character attributes (637 genders pre-filled)
+- **Dark / Light theme** toggle with auto-saved preference
 - Custom group size, auto-split into tabs + grand finals
 - Symmetric L/R bracket layout, champion at center with gold dashed connectors
 - Click empty slots to pick winners, with clear and cascade reset
@@ -96,12 +102,12 @@ Mix and match pools freely in the settings panel.
 
 ## Data Files
 
-| File | Description |
-|---|---|
-| `operators.json` | Operator data (name, gender, avatar, charId) |
-| `enemies.json` | Enemy data (name, portrait) |
-| `story_chars.json` | Story character data (name, art) |
-| `items.json` | Item data (name, icon) |
-| `overwrites.json` | Manual overrides (gender, etc.), survives data regeneration |
+| File                 | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `operators.json`   | Operator data (name, gender, avatar, charId)                |
+| `enemies.json`     | Enemy data (name, portrait)                                 |
+| `story_chars.json` | Story character data (name, art)                            |
+| `items.json`       | Item data (name, icon)                                      |
+| `overwrites.json`  | Manual overrides (gender, etc.), survives data regeneration |
 
 All data sourced from [PRTS Wiki](https://prts.wiki) (Arknights CN Wiki) via MediaWiki API.

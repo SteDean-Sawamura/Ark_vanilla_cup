@@ -1144,22 +1144,24 @@ function copyReport(){
 /* ── Character Picker ── */
 function openCharPick(){
   const box=document.getElementById('charpick-box');
-  // Get all available ops (after pool selection but before selectedOnly filter)
+  // Build groups from enabled pools
+  const groups=[];
+  if(pools.operators&&RAW_OPS.length)groups.push({key:'ops',label:`干员 (${RAW_OPS.length})`,items:RAW_OPS});
+  if(pools.enemies&&RAW_ENEMIES.length)groups.push({key:'enemies',label:`敌人 (${RAW_ENEMIES.length})`,items:RAW_ENEMIES});
+  if(pools.story&&RAW_STORY.length)groups.push({key:'story',label:`剧情角色 (${RAW_STORY.length})`,items:RAW_STORY});
+  if(pools.items&&RAW_ITEMS.length)groups.push({key:'items',label:`道具 (${RAW_ITEMS.length})`,items:RAW_ITEMS});
+  if(!groups.length)groups.push({key:'ops',label:`干员 (${RAW_OPS.length})`,items:RAW_OPS});
+
   let all=[];
-  if(pools.operators)all.push(...RAW_OPS);
-  if(pools.enemies)all.push(...RAW_ENEMIES);
-  if(pools.story)all.push(...RAW_STORY);
-  if(pools.items)all.push(...RAW_ITEMS);
-  if(!all.length)all=[...RAW_OPS];
-  // Dedup by name
+  for(const g of groups)all.push(...g.items);
   const seen=new Set();all=all.filter(o=>{if(seen.has(o.cn))return false;seen.add(o.cn);return true});
   const sel=selectedOnly?new Set(selectedOnly):new Set(all.map(o=>o.cn));
-  window._cpAll=all;window._cpSel=sel;
+  window._cpAll=all;window._cpSel=sel;window._cpGroups=groups;
 
-  let h=`<h2>🎯 选择参赛角色 (${sel.size}/${all.length})</h2>`;
+  let h=`<h2>🎯 选择参赛角色</h2>`;
   h+='<div class="cp-bar"><input type="text" id="cp-search" placeholder="搜索角色名…" oninput="filterCharPick()">';
   h+=`<button onclick="cpSelectAll()">全选</button><button onclick="cpDeselectAll()">全不选</button>`;
-  h+=`<span id="cp-count">${sel.size} 已选</span></div>`;
+  h+=`<span id="cp-count">${sel.size}/${all.length} 已选</span></div>`;
   h+='<div class="cp-list" id="cp-list"></div>';
   h+='<div class="sbtns"><button onclick="closeCharPick()">取消</button><button onclick="cpReset()">重置(全部)</button><button class="primary" onclick="applyCharPick()">确定</button></div>';
   box.innerHTML=h;
@@ -1168,14 +1170,33 @@ function openCharPick(){
 }
 function renderCharPickList(all,sel,q){
   const list=document.getElementById('cp-list');if(!list)return;
-  const filtered=q?all.filter(o=>o.cn.includes(q)):all;
+  const groups=window._cpGroups||[{key:'all',label:'全部',items:all}];
   let h='';
-  for(const o of filtered){
-    const s=sel.has(o.cn)?'sel':'';
-    const av=o.av?`<img src="${o.av}" loading="lazy">`:'';
-    h+=`<div class="cp-item ${s}" onclick="cpToggle('${o.cn.replace(/'/g,"\\'")}',this)" title="${o.cn}">${av}<span class="ci-n">${o.cn}</span></div>`;
+  for(const g of groups){
+    const filtered=q?g.items.filter(o=>o.cn.includes(q)):g.items;
+    if(!filtered.length)continue;
+    const gSel=filtered.filter(o=>sel.has(o.cn)).length;
+    h+=`<div style="width:100%;display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border2)">`;
+    h+=`<strong style="color:var(--accent);font-size:12px">${g.label}</strong>`;
+    h+=`<span style="font-size:11px;color:var(--text3)">${gSel}/${filtered.length}</span>`;
+    h+=`<button onclick="cpGroupSel('${g.key}',true)" style="font-size:10px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">全选</button>`;
+    h+=`<button onclick="cpGroupSel('${g.key}',false)" style="font-size:10px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">全不选</button>`;
+    h+=`</div>`;
+    for(const o of filtered){
+      const s=sel.has(o.cn)?'sel':'';
+      const av=o.av?`<img src="${o.av}" loading="lazy">`:'';
+      h+=`<div class="cp-item ${s}" onclick="cpToggle('${o.cn.replace(/'/g,"\\'")}',this)" title="${o.cn}">${av}<span class="ci-n">${o.cn}</span></div>`;
+    }
   }
   list.innerHTML=h||'<div style="color:var(--text3);padding:20px">无匹配结果</div>';
+}
+function cpGroupSel(key,add){
+  const g=window._cpGroups.find(g=>g.key===key);if(!g)return;
+  const q=document.getElementById('cp-search')?.value||'';
+  const filtered=q?g.items.filter(o=>o.cn.includes(q)):g.items;
+  for(const o of filtered){if(add)window._cpSel.add(o.cn);else window._cpSel.delete(o.cn)}
+  filterCharPick();
+  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+'/'+window._cpAll.length+' 已选';
 }
 function filterCharPick(){
   const q=document.getElementById('cp-search')?.value||'';
@@ -1185,21 +1206,21 @@ function cpToggle(cn,el){
   const sel=window._cpSel;
   if(sel.has(cn)){sel.delete(cn);el.classList.remove('sel')}
   else{sel.add(cn);el.classList.add('sel')}
-  const c=document.getElementById('cp-count');if(c)c.textContent=sel.size+' 已选';
+  const c=document.getElementById('cp-count');if(c)c.textContent=sel.size+'/'+window._cpAll.length+' 已选';
 }
 function cpSelectAll(){
   const q=document.getElementById('cp-search')?.value||'';
   const filtered=q?window._cpAll.filter(o=>o.cn.includes(q)):window._cpAll;
   for(const o of filtered)window._cpSel.add(o.cn);
   filterCharPick();
-  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+' 已选';
+  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+'/'+window._cpAll.length+' 已选';
 }
 function cpDeselectAll(){
   const q=document.getElementById('cp-search')?.value||'';
   const filtered=q?window._cpAll.filter(o=>o.cn.includes(q)):window._cpAll;
   for(const o of filtered)window._cpSel.delete(o.cn);
   filterCharPick();
-  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+' 已选';
+  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+'/'+window._cpAll.length+' 已选';
 }
 function cpReset(){selectedOnly=null;closeCharPick();rebuildData();buildAll()}
 function applyCharPick(){
