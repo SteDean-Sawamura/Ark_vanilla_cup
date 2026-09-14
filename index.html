@@ -110,6 +110,21 @@ body{background:var(--bg);color:var(--text);font-family:"Microsoft YaHei","PingF
 .sbtns button:hover{background:var(--hover2)}
 .sbtns button.primary{background:#f0c040;color:#1a1a2e;font-weight:bold}
 .sbtns button.primary:hover{background:#ffd060}
+/* Character picker */
+.charpick{background:var(--card);border:2px solid var(--accent);border-radius:12px;padding:16px;width:min(95vw,800px);max-height:85vh;display:flex;flex-direction:column;gap:10px}
+.charpick h2{color:var(--accent);font-size:16px}
+.cp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cp-bar input{flex:1;min-width:120px;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-size:13px}
+.cp-bar button{background:var(--border);color:var(--text);border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px}
+.cp-bar span{font-size:12px;color:var(--text3)}
+.cp-list{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;min-height:200px;max-height:55vh;padding:4px}
+.cp-item{display:flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:11px;transition:all .15s;background:var(--bg2)}
+.cp-item:hover{border-color:var(--accent)}
+.cp-item.sel{border-color:var(--accent);background:var(--win-bg)}
+.cp-item img{width:28px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0}
+.cp-item .ci-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px}
+/* Swap mode */
+.S.swap-src{border-color:#4a90d9!important;box-shadow:0 0 12px rgba(74,144,217,.5)!important}
 </style>
 </head>
 <body>
@@ -135,6 +150,10 @@ body{background:var(--bg);color:var(--text);font-family:"Microsoft YaHei","PingF
 </div>
 
 <div class="overlay" id="ov" onclick="if(event.target===this)cp()"><div class="pbox" id="pb"></div></div>
+
+<div class="overlay" id="charpick-ov" onclick="if(event.target===this)closeCharPick()">
+  <div class="charpick" id="charpick-box"></div>
+</div>
 
 <div class="overlay" id="settings-ov" onclick="if(event.target===this)closeSettings()">
   <div class="settings-box" id="settings-box"></div>
@@ -178,7 +197,9 @@ let mode='gender'; // 'gender' | 'all'
 let altMode='separate'; // 'separate' = 异格独立 | 'merge' = 异格合并
 let excludeKeywords='卫戍协议,盟约,领主';
 let dedupSameName=true;
-let pools={operators:true,enemies:false,story:false,items:false}; // which pools to include
+let pools={operators:true,enemies:false,story:false,items:false};
+let selectedOnly=null; // null=use all, Set=only these cn names
+let swapMode=false,swapSlot=null; // which pools to include
 let groupSizes={other:32,male:32,female:32,all:32};
 let tabs=[],curTab=null,views={},pt=null;
 
@@ -379,6 +400,8 @@ function rebuildData(){
     const kws=excludeKeywords.split(',').map(k=>k.trim()).filter(Boolean);
     if(kws.length)ops=ops.filter(o=>!kws.some(k=>o.cn.includes(k)));
   }
+  // Selected-only filter
+  if(selectedOnly)ops=ops.filter(o=>selectedOnly.has(o.cn));
   DATA.male=ops.filter(o=>o.sex==='男');
   DATA.female=ops.filter(o=>o.sex==='女');
   DATA.other=ops.filter(o=>o.sex!=='男'&&o.sex!=='女');
@@ -447,7 +470,7 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
       if(r===0){
         const op=s[i];
         if(!op)html+=`<div class="S bye" id="${sid}" data-r="0" data-cn="" data-av="" style="left:${x}px;top:${y}px"><div class="nm">轮空</div></div>`;
-        else{const ac=op.isArt?' art':'';html+=`<div class="S F" id="${sid}" data-r="0" data-cn="${op.cn}" data-av="${op.av}"${op.isArt?' data-art="1"':''} style="left:${x}px;top:${y}px"><img class="${ac}" data-src="${op.av}" loading="lazy"><div class="nm">${op.cn}</div></div>`;}
+        else{const ac=op.isArt?' art':'';html+=`<div class="S F" id="${sid}" data-r="0" data-cn="${op.cn}" data-av="${op.av}"${op.isArt?' data-art="1"':''} style="left:${x}px;top:${y}px" onclick="handleSlotClick(this)"><img class="${ac}" data-src="${op.av}" loading="lazy"><div class="nm">${op.cn}</div></div>`;}
       }else{
         const pa=`${gid}-${tag}-r${r-1}-s${i*2}`,pb=`${gid}-${tag}-r${r-1}-s${i*2+1}`;
         html+=`<div class="S E" id="${sid}" data-r="${r}" data-pa="${pa}" data-pb="${pb}" data-cn="" data-av="" style="left:${x}px;top:${y}px" onclick="openPicker(this)"><div class="ph">?</div></div>`;
@@ -634,6 +657,7 @@ function buildAll(){
     '<button onclick="showShuffleMenu()" style="background:#6a3a2a;border-color:#6a3a2a;color:#eee">🎲 打乱</button>'+
     '<button onclick="zm(1.3)">＋</button><button onclick="zm(.7)">－</button>'+
     '<button onclick="rvTab(curTab)">重置</button>'+
+    '<button onclick="toggleSwap()" id="swapBtn">🔄 交换</button>'+
     `<button onclick="toggleTheme()">${document.documentElement.dataset.theme==='light'?'🌙':'☀️'}</button>`;
 
   wireUpPanels();
@@ -814,7 +838,7 @@ function openSettings(){
   h+='<div style="font-size:11px;color:var(--text3);margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button> <button onclick="addExclude(\'领主\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+领主</button> <button onclick="addExclude(\'盟约\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+盟约</button></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
   h+='<div id="s-gs-area" style="display:flex;flex-direction:column;gap:8px"></div>';
-  h+='<div class="sbtns"><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>';
+  h+=`<div class="sbtns"><button onclick="closeSettings();openCharPick()">🎯 选择参赛角色${selectedOnly?` (${selectedOnly.size})`:' (全部)'}</button><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>`;
   document.getElementById('settings-box').innerHTML=h;
   // Populate group size inputs based on current mode selection
   const msel=document.getElementById('s-mode');
@@ -923,6 +947,7 @@ function syncFinals(){
 
 /* ── Picker ── */
 function openPicker(s){
+  if(handleSlotClick(s))return;
   const pai=s.dataset.pa,pbi=s.dataset.pb;if(!pai||!pbi)return;
   const pa=document.getElementById(pai),pb=document.getElementById(pbi);if(!pa||!pb)return;
   const ar=(pa.classList.contains('F')||pa.classList.contains('W'))&&pa.dataset.cn;
@@ -1114,6 +1139,111 @@ function copyReport(){
   ta.select();
   document.execCommand('copy');
   alert('战报已复制！');
+}
+
+/* ── Character Picker ── */
+function openCharPick(){
+  const box=document.getElementById('charpick-box');
+  // Get all available ops (after pool selection but before selectedOnly filter)
+  let all=[];
+  if(pools.operators)all.push(...RAW_OPS);
+  if(pools.enemies)all.push(...RAW_ENEMIES);
+  if(pools.story)all.push(...RAW_STORY);
+  if(pools.items)all.push(...RAW_ITEMS);
+  if(!all.length)all=[...RAW_OPS];
+  // Dedup by name
+  const seen=new Set();all=all.filter(o=>{if(seen.has(o.cn))return false;seen.add(o.cn);return true});
+  const sel=selectedOnly?new Set(selectedOnly):new Set(all.map(o=>o.cn));
+  window._cpAll=all;window._cpSel=sel;
+
+  let h=`<h2>🎯 选择参赛角色 (${sel.size}/${all.length})</h2>`;
+  h+='<div class="cp-bar"><input type="text" id="cp-search" placeholder="搜索角色名…" oninput="filterCharPick()">';
+  h+=`<button onclick="cpSelectAll()">全选</button><button onclick="cpDeselectAll()">全不选</button>`;
+  h+=`<span id="cp-count">${sel.size} 已选</span></div>`;
+  h+='<div class="cp-list" id="cp-list"></div>';
+  h+='<div class="sbtns"><button onclick="closeCharPick()">取消</button><button onclick="cpReset()">重置(全部)</button><button class="primary" onclick="applyCharPick()">确定</button></div>';
+  box.innerHTML=h;
+  renderCharPickList(all,sel,'');
+  document.getElementById('charpick-ov').classList.add('show');
+}
+function renderCharPickList(all,sel,q){
+  const list=document.getElementById('cp-list');if(!list)return;
+  const filtered=q?all.filter(o=>o.cn.includes(q)):all;
+  let h='';
+  for(const o of filtered){
+    const s=sel.has(o.cn)?'sel':'';
+    const av=o.av?`<img src="${o.av}" loading="lazy">`:'';
+    h+=`<div class="cp-item ${s}" onclick="cpToggle('${o.cn.replace(/'/g,"\\'")}',this)" title="${o.cn}">${av}<span class="ci-n">${o.cn}</span></div>`;
+  }
+  list.innerHTML=h||'<div style="color:var(--text3);padding:20px">无匹配结果</div>';
+}
+function filterCharPick(){
+  const q=document.getElementById('cp-search')?.value||'';
+  renderCharPickList(window._cpAll,window._cpSel,q);
+}
+function cpToggle(cn,el){
+  const sel=window._cpSel;
+  if(sel.has(cn)){sel.delete(cn);el.classList.remove('sel')}
+  else{sel.add(cn);el.classList.add('sel')}
+  const c=document.getElementById('cp-count');if(c)c.textContent=sel.size+' 已选';
+}
+function cpSelectAll(){
+  const q=document.getElementById('cp-search')?.value||'';
+  const filtered=q?window._cpAll.filter(o=>o.cn.includes(q)):window._cpAll;
+  for(const o of filtered)window._cpSel.add(o.cn);
+  filterCharPick();
+  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+' 已选';
+}
+function cpDeselectAll(){
+  const q=document.getElementById('cp-search')?.value||'';
+  const filtered=q?window._cpAll.filter(o=>o.cn.includes(q)):window._cpAll;
+  for(const o of filtered)window._cpSel.delete(o.cn);
+  filterCharPick();
+  const c=document.getElementById('cp-count');if(c)c.textContent=window._cpSel.size+' 已选';
+}
+function cpReset(){selectedOnly=null;closeCharPick();rebuildData();buildAll()}
+function applyCharPick(){
+  const sel=window._cpSel;
+  if(sel.size===window._cpAll.length)selectedOnly=null;
+  else selectedOnly=new Set(sel);
+  closeCharPick();rebuildData();buildAll();
+}
+function closeCharPick(){document.getElementById('charpick-ov').classList.remove('show')}
+
+/* ── Swap Mode ── */
+function toggleSwap(){
+  swapMode=!swapMode;swapSlot=null;
+  const btn=document.getElementById('swapBtn');
+  if(btn)btn.style.background=swapMode?'#4a90d9':'';
+  if(!swapMode)document.querySelectorAll('.swap-src').forEach(s=>s.classList.remove('swap-src'));
+}
+function handleSlotClick(s){
+  if(!swapMode)return false;
+  if(parseInt(s.dataset.r)!==0||s.classList.contains('bye'))return true;
+  if(!swapSlot){
+    swapSlot=s;s.classList.add('swap-src');
+  }else{
+    // Swap the two round-0 slots
+    const a=swapSlot,b=s;
+    const acn=a.dataset.cn,aav=a.dataset.av,aart=a.dataset.art;
+    const bcn=b.dataset.cn,bav=b.dataset.av,bart=b.dataset.art;
+    setR0Slot(a,bcn,bav,bart);
+    setR0Slot(b,acn,aav,aart);
+    a.classList.remove('swap-src');
+    swapSlot=null;
+  }
+  return true;
+}
+function setR0Slot(s,cn,av,art){
+  if(!cn){
+    s.className='S bye';s.dataset.cn='';s.dataset.av='';delete s.dataset.art;
+    s.innerHTML='<div class="nm">轮空</div>';s.removeAttribute('onclick');
+  }else{
+    const ac=art?'art':'';
+    s.className='S F';s.dataset.cn=cn;s.dataset.av=av;
+    if(art)s.dataset.art='1';else delete s.dataset.art;
+    s.innerHTML=`<img class="${ac}" src="${av}" loading="lazy"><div class="nm">${cn}</div>`;
+  }
 }
 
 /* ── Theme ── */
