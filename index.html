@@ -475,7 +475,7 @@ function renderHalf(slots,gid,tag,xb,yb,mirror){
 }
 
 function renderBracket(ops,gid){
-  const n=ops.length;if(n<2)return{html:'<div style="padding:40px;color:#888">人数不足</div>',w:400,h:200};
+  const n=ops.length;if(n<2)return{html:'<div style="padding:40px;color:var(--text3)">人数不足</div>',w:400,h:200};
   const rnds=Math.ceil(Math.log2(n));
   const sz=1<<rnds,half=sz>>1;
   const all=shuffleWithByes(ops,sz);
@@ -518,7 +518,7 @@ function renderFinals(gids,fid){
       if(r===0){
         if(i<gids.length){
           const lc=String.fromCharCode(65+i);
-          html+=`<div class="S" id="${sid}" data-r="0" data-link="${gids[i]}-champ" data-src-tab="${gids[i]}" data-cn="" data-av="" style="left:${x}px;top:${y}px;border-color:#888;background:#0f1629"><div class="ph" style="font-size:11px;color:#888">${lc}组冠军</div></div>`;
+          html+=`<div class="S" id="${sid}" data-r="0" data-link="${gids[i]}-champ" data-src-tab="${gids[i]}" data-cn="" data-av="" style="left:${x}px;top:${y}px;border-color:var(--text3);background:var(--bg2)"><div class="ph" style="font-size:11px;color:var(--text3)">${lc}组冠军</div></div>`;
         }else{
           html+=`<div class="S bye" id="${sid}" data-r="0" data-cn="" data-av="" style="left:${x}px;top:${y}px"><div class="nm">轮空</div></div>`;
         }
@@ -732,9 +732,9 @@ function changeMode(m){mode=m;buildAll()}
 
 function showShuffleMenu(){
   const bx=document.getElementById('pb');
-  let h='<div class="popt" onclick="cp();buildAll()"><div class="pn">🎲 打乱全部</div><div style="font-size:11px;color:#888">重建所有赛区</div></div>';
+  let h='<div class="popt" onclick="cp();buildAll()"><div class="pn">🎲 打乱全部</div><div style="font-size:11px;color:var(--text3)">重建所有赛区</div></div>';
   h+='<div class="pvs">/</div>';
-  h+='<div class="popt" onclick="cp();shuffleCurrent()"><div class="pn">🔀 只打乱当前组</div><div style="font-size:11px;color:#888">保留其他组进度</div></div>';
+  h+='<div class="popt" onclick="cp();shuffleCurrent()"><div class="pn">🔀 只打乱当前组</div><div style="font-size:11px;color:var(--text3)">保留其他组进度</div></div>';
   bx.innerHTML=h;
   document.getElementById('ov').classList.add('show');
 }
@@ -810,8 +810,8 @@ function openSettings(){
   h+=`<option value="yes"${dedupSameName?' selected':''}>去重 (如暮落)</option>`;
   h+=`<option value="no"${!dedupSameName?' selected':''}>保留全部</option>`;
   h+='</select></div>';
-  h+=`<div class="srow"><label>排除干员</label><input type="text" id="s-exclude" value="${excludeKeywords}" placeholder="关键词,逗号分隔" style="background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:4px 8px;font-size:13px;flex:1"></div>`;
-  h+='<div style="font-size:11px;color:#666;margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button> <button onclick="addExclude(\'领主\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+领主</button> <button onclick="addExclude(\'盟约\')" style="font-size:11px;background:#2a3a5a;color:#aaa;border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+盟约</button></div>';
+  h+=`<div class="srow"><label>排除干员</label><input type="text" id="s-exclude" value="${excludeKeywords}" placeholder="关键词,逗号分隔" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:13px;flex:1"></div>`;
+  h+='<div style="font-size:11px;color:var(--text3);margin:-8px 0 0 90px">名称含关键词的干员将被排除 <button onclick="addExclude(\'卫戍协议\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+卫戍协议</button> <button onclick="addExclude(\'预备干员\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+预备干员</button> <button onclick="addExclude(\'领主\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+领主</button> <button onclick="addExclude(\'盟约\')" style="font-size:11px;background:var(--border2);color:var(--text2);border:none;border-radius:3px;padding:1px 6px;cursor:pointer">+盟约</button></div>';
   h+='<div class="srow"><label>每组上限</label></div>';
   h+='<div id="s-gs-area" style="display:flex;flex-direction:column;gap:8px"></div>';
   h+='<div class="sbtns"><button onclick="closeSettings()">取消</button><button class="primary" onclick="applySettings()">应用并重建</button></div>';
@@ -916,7 +916,7 @@ function syncFinals(){
       const label=String.fromCharCode(65+parseInt(idx));
       slot.className='S';slot.style.cssText+=';border-color:#888;background:#0f1629';
       slot.dataset.cn='';slot.dataset.av='';
-      slot.innerHTML=`<div class="ph" style="font-size:11px;color:#888">${label}组冠军</div>`;
+      slot.innerHTML=`<div class="ph" style="font-size:11px;color:var(--text3)">${label}组冠军</div>`;
     }
   });
 }
