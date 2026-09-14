@@ -6,67 +6,75 @@
 <title>明日方舟香草杯</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;overflow:hidden;display:flex;flex-direction:column;height:100vh}
+body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei","PingFang SC",sans-serif;overflow:hidden;display:flex;flex-direction:column;height:100vh}
 /* Loading */
-#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px}
-#loading h1{color:#f0c040;font-size:28px}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;background:radial-gradient(ellipse at center,#1a2a4e 0%,#1a1a2e 70%)}
+#loading h1{color:#f0c040;font-size:32px;letter-spacing:2px}
 #loading .sub{color:#888;font-size:14px}
-.prog-bar{width:360px;height:8px;background:#0f1629;border-radius:4px;overflow:hidden}
-.prog-fill{height:100%;background:#f0c040;width:0;transition:width .3s}
+.prog-bar{width:min(400px,80vw);height:6px;background:#0f1629;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#f0c040,#ffd060);width:0;transition:width .3s}
 #prog-text{font-size:13px;color:#aaa}
 /* Main UI */
 #main{display:none;flex-direction:column;height:100vh}
-.topbar{display:flex;align-items:center;background:#0f1629;border-bottom:2px solid #2a4a7a;padding:4px 10px;gap:4px;z-index:200;flex-shrink:0;flex-wrap:wrap}
-.tab-btn{background:#16213e;color:#aaa;border:1px solid #2a4a7a;border-bottom:none;border-radius:6px 6px 0 0;padding:5px 12px;cursor:pointer;font-size:13px;transition:all .2s;white-space:nowrap}
+.topbar{display:flex;align-items:center;background:#0f1629;border-bottom:2px solid #2a4a7a;padding:4px 10px;gap:4px;z-index:200;flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#2a4a7a transparent}
+.topbar::-webkit-scrollbar{height:4px}
+.topbar::-webkit-scrollbar-thumb{background:#2a4a7a;border-radius:2px}
+.tab-btn{background:#16213e;color:#aaa;border:1px solid #2a4a7a;border-bottom:none;border-radius:6px 6px 0 0;padding:5px 12px;cursor:pointer;font-size:13px;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn:hover{color:#eee;background:#1a3a5c}
 .tab-btn.active{background:#1a1a2e;color:#f0c040;font-weight:bold;border-color:#f0c040}
-.sep{width:1px;height:24px;background:#2a4a7a;margin:0 2px}
-.cfg{display:flex;align-items:center;gap:4px;margin-left:auto;flex-wrap:wrap}
+.sep{width:1px;height:24px;background:#2a4a7a;margin:0 2px;flex-shrink:0}
+.cfg{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
 .cfg label{font-size:12px;color:#888}
 .cfg input[type=number]{width:52px;background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center}
 .cfg select{background:#0f1629;color:#eee;border:1px solid #2a4a7a;border-radius:4px;padding:2px 6px;font-size:12px}
-.cfg button{background:#16213e;color:#eee;border:1px solid #555;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px}
+.cfg button{background:#16213e;color:#eee;border:1px solid #555;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px;white-space:nowrap}
 .cfg button:hover{background:#1a3a5c}
 .panels{flex:1;position:relative}
 .panel{display:none;position:absolute;inset:0;overflow:hidden;cursor:grab}
 .panel.act{display:block}
 .panel.drag{cursor:grabbing}
 .cv{transform-origin:0 0;position:absolute}
-.S{position:absolute;width:88px;height:72px;background:#16213e;border:2px solid #2a4a7a;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:border-color .2s;overflow:hidden}
+.S{position:absolute;width:88px;height:72px;background:#16213e;border:2px solid #2a4a7a;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:border-color .2s,box-shadow .3s;overflow:hidden}
 .S:hover{border-color:#5a8aba}
-.S.bye{opacity:.3;border-style:dashed}
+.S.bye{opacity:.25;border-style:dashed}
 .S.F{border-color:#3a6a9a}
-.S.W{border-color:#f0c040;background:#1a2a4e;box-shadow:0 0 8px rgba(240,192,64,.3)}
+.S.W{border-color:#f0c040;background:#1a2a4e;box-shadow:0 0 10px rgba(240,192,64,.35)}
 .S.E{background:#0f1629;border:2px dashed #2a3a5a;cursor:pointer}
-.S.E:hover{border-color:#f0c040}
+.S.E:hover{border-color:#f0c040;background:#111a33}
 .S.champ{border-color:#f0c040;background:#0f1629}
-.S.champ.W{background:#2a1a0e;box-shadow:0 0 16px rgba(240,192,64,.5)}
+.S.champ.W{background:#2a1a0e;box-shadow:0 0 20px rgba(240,192,64,.5)}
 .S img{width:44px;height:44px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .S img.art{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:0;object-fit:cover;transform:scale(2.8);transform-origin:50% 18%;pointer-events:none}
 .nm{font-size:9px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:82px;line-height:1.2;position:relative;z-index:1;text-shadow:0 0 3px #16213e,0 0 6px #16213e}
-.ph{color:#555;font-size:20px}
+.ph{color:#444;font-size:18px}
 .rl{position:absolute;color:#f0c040;font-size:12px;font-weight:bold;text-align:center;width:88px}
 .cn{position:absolute}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;justify-content:center;align-items:center}
+@keyframes winFlash{0%{box-shadow:0 0 0 rgba(240,192,64,0)}50%{box-shadow:0 0 24px rgba(240,192,64,.7)}100%{box-shadow:0 0 10px rgba(240,192,64,.35)}}
+.S.flash{animation:winFlash .5s ease-out}
+/* Overlays */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;justify-content:center;align-items:center;backdrop-filter:blur(2px)}
 .overlay.show{display:flex}
-.pbox{background:#16213e;border:2px solid #f0c040;border-radius:12px;padding:16px;display:flex;gap:20px;align-items:stretch}
+.pbox{background:#16213e;border:2px solid #f0c040;border-radius:12px;padding:16px;display:flex;gap:20px;align-items:stretch;max-width:95vw}
 .popt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border:2px solid #2a4a7a;border-radius:8px;cursor:pointer;transition:all .2s;min-width:110px}
-.popt:hover{border-color:#f0c040;background:#1a2a4e}
-.popt img{width:64px;height:64px;border-radius:6px;object-fit:cover}
-.popt .pn{font-size:13px;font-weight:bold;text-align:center}
+.popt:hover{border-color:#f0c040;background:#1a2a4e;transform:translateY(-2px)}
+.popt img{width:64px;height:64px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.popt .pn{font-size:13px;font-weight:bold;text-align:center;background:rgba(15,22,41,.7);padding:2px 8px;border-radius:4px}
 .popt.dis{opacity:.3;cursor:not-allowed}
 .pvs{display:flex;align-items:center;font-size:22px;font-weight:bold;color:#f0c040}
-.pcl{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;border:2px dashed #555;border-radius:8px;cursor:pointer;color:#888;font-size:12px;min-width:70px}
+.pcl{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;border:2px dashed #555;border-radius:8px;cursor:pointer;color:#888;font-size:12px;min-width:70px;transition:all .2s}
 .pcl:hover{border-color:#c44;color:#c44}
+/* Bottom buttons */
 .btns{position:fixed;bottom:12px;right:12px;z-index:300;display:flex;gap:6px}
-.btns button{color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px}
+.btns button{color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .15s}
+.btns button:hover{transform:translateY(-1px)}
+/* Mobile */
 @media(max-width:600px){
   .topbar{padding:3px 6px;gap:3px}
   .tab-btn{padding:4px 8px;font-size:11px}
   .cfg button{padding:4px 6px;font-size:11px}
   .btns{bottom:8px;right:8px;gap:4px}
   .btns button{padding:6px 10px;font-size:11px}
-  .pbox{padding:12px;gap:12px;flex-wrap:wrap;max-width:95vw}
+  .pbox{padding:12px;gap:12px;flex-wrap:wrap}
   .popt{min-width:90px;padding:8px}
   .popt img{width:48px;height:48px}
   .settings-box{padding:16px;gap:12px;width:min(95vw,400px)}
@@ -75,6 +83,7 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
   .srow select,.srow input[type=number]{font-size:12px;padding:6px}
   .share-box{padding:14px;width:min(95vw,600px)}
 }
+/* Share/Settings boxes */
 .share-box{background:#16213e;border:2px solid #f0c040;border-radius:12px;padding:20px;width:min(90vw,700px);max-height:85vh;display:flex;flex-direction:column;gap:12px}
 .share-tabs{display:flex;gap:6px}
 .share-tab{background:#0f1629;color:#aaa;border:1px solid #2a4a7a;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px}
@@ -104,7 +113,7 @@ body{background:#1a1a2e;color:#eee;font-family:"Microsoft YaHei",sans-serif;over
 
 <div id="loading">
   <h1>明日方舟香草杯</h1>
-  <div class="sub">正在从 PRTS 加载干员数据…</div>
+  <div class="sub">全角色淘汰赛生成器</div>
   <div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
   <div id="prog-text">准备中…</div>
 </div>
@@ -856,11 +865,12 @@ function autoAdv(){
   }
 }
 function sel(s,w){
-  s.className='S F W';s.dataset.cn=w.dataset.cn;s.dataset.av=w.dataset.av;
+  s.className='S F W flash';s.dataset.cn=w.dataset.cn;s.dataset.av=w.dataset.av;
   const ac=w.dataset.art?'art':'';
   if(w.dataset.art)s.dataset.art='1';else delete s.dataset.art;
   s.innerHTML=`<img class="${ac}" src="${w.dataset.av}" loading="lazy"><div class="nm">${w.dataset.cn}</div>`;
   s.setAttribute('onclick','openPicker(this)');
+  setTimeout(()=>s.classList.remove('flash'),500);
   syncFinals()}
 
 function syncFinals(){
