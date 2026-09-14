@@ -531,37 +531,82 @@ function renderBracket(ops,gid){
 }
 
 function renderFinals(gids,fid){
-  const n=gids.length,rnds=Math.ceil(Math.log2(n)),sz=1<<rnds;
-  let html='';
-  for(let r=0;r<=rnds;r++){
-    const sc=sz>>r,sp=CHG*(1<<r),off=(sp-CH)/2;
-    const x=r*(CW+RGX+20);
-    const lbl=r===rnds?'总冠军':r===rnds-1?'决赛':`第${r+1}轮`;
-    html+=`<div class="rl" style="left:${x}px;top:-30px">${lbl}</div>`;
-    for(let i=0;i<sc;i++){
-      const y=off+i*sp,sid=`${fid}-r${r}-s${i}`;
-      if(r===0){
-        if(i<gids.length){
-          const lc=String.fromCharCode(65+i);
-          html+=`<div class="S" id="${sid}" data-r="0" data-link="${gids[i]}-champ" data-src-tab="${gids[i]}" data-cn="" data-av="" style="left:${x}px;top:${y}px;border-color:var(--text3);background:var(--bg2)"><div class="ph" style="font-size:11px;color:var(--text3)">${lc}组冠军</div></div>`;
+  const n=gids.length;
+  if(n<2)return{html:'',w:400,h:200};
+  const rnds=Math.ceil(Math.log2(n));
+  const sz=1<<rnds;
+  // Create placeholder ops for each group champion + byes, scattered
+  const placeholders=[];
+  for(let i=0;i<n;i++)placeholders.push({cn:'',av:'',gid:gids[i],label:String.fromCharCode(65+i)+'组冠军',isLink:true});
+  // Scatter byes among placeholders
+  const all=shuffleWithByes(placeholders,sz);
+  const half=sz>>1;
+  const topSlots=all.slice(0,half);
+  const botSlots=all.slice(half);
+
+  function renderFinalsHalf(slots,tag,xb,yb,mirror){
+    const hn=slots.length;if(hn<1)return{html:'',winner:'',h:0,w:0,wx:0,wy:0};
+    const hr=Math.ceil(Math.log2(hn))||1;
+    const hsz=1<<hr;
+    const s=[...slots];while(s.length<hsz)s.push(null);
+    let html='';
+    for(let r=0;r<=hr;r++){
+      const sc=hsz>>r,sp=CHG*(1<<r),off=(sp-CH)/2;
+      const x=mirror?xb+(hr-r)*(CW+RGX):xb+r*(CW+RGX);
+      for(let i=0;i<sc;i++){
+        const y=yb+off+i*sp,sid=`${fid}-${tag}-r${r}-s${i}`;
+        if(r===0){
+          const op=s[i];
+          if(!op){
+            html+=`<div class="S bye" id="${sid}" data-r="0" data-cn="" data-av="" style="left:${x}px;top:${y}px"><div class="nm">轮空</div></div>`;
+          }else{
+            html+=`<div class="S" id="${sid}" data-r="0" data-link="${op.gid}-champ" data-src-tab="${op.gid}" data-cn="" data-av="" style="left:${x}px;top:${y}px;border-color:var(--text3);background:var(--bg2)"><div class="ph" style="font-size:11px;color:var(--text3)">${op.label}</div></div>`;
+          }
         }else{
-          html+=`<div class="S bye" id="${sid}" data-r="0" data-cn="" data-av="" style="left:${x}px;top:${y}px"><div class="nm">轮空</div></div>`;
+          const pa=`${fid}-${tag}-r${r-1}-s${i*2}`,pb=`${fid}-${tag}-r${r-1}-s${i*2+1}`;
+          html+=`<div class="S E" id="${sid}" data-r="${r}" data-pa="${pa}" data-pb="${pb}" data-cn="" data-av="" style="left:${x}px;top:${y}px" onclick="openPicker(this)"><div class="ph">?</div></div>`;
         }
-      }else{
-        const pa=`${fid}-r${r-1}-s${i*2}`,pb=`${fid}-r${r-1}-s${i*2+1}`;
-        html+=`<div class="S E" id="${sid}" data-r="${r}" data-pa="${pa}" data-pb="${pb}" data-cn="" data-av="" style="left:${x}px;top:${y}px" onclick="openPicker(this)"><div class="ph">?</div></div>`;
+      }
+      if(r<hr){
+        const ns=CHG*(1<<(r+1)),no=(ns-CH)/2;
+        for(let i=0;i<sc;i+=2){
+          const y1=yb+off+i*sp+CH/2,y2=yb+off+(i+1)*sp+CH/2,ny=yb+no+(i/2)*ns+CH/2;
+          const sy=Math.min(y1,y2,ny)-2,sh=Math.max(y1,y2,ny)-sy+4;
+          if(mirror){
+            const mx=x-RGX;
+            html+=`<svg class="cn" style="left:${mx}px;top:${sy}px;width:${RGX}px;height:${sh}px"><line x1="${RGX}" y1="${y1-sy}" x2="${RGX/2}" y2="${y1-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${RGX}" y1="${y2-sy}" x2="${RGX/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${RGX/2}" y1="${y1-sy}" x2="${RGX/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${RGX/2}" y1="${ny-sy}" x2="0" y2="${ny-sy}" stroke="currentColor" stroke-width="1.5"/></svg>`;
+          }else{
+            const mx=x+CW;
+            html+=`<svg class="cn" style="left:${mx}px;top:${sy}px;width:${RGX}px;height:${sh}px"><line x1="0" y1="${y1-sy}" x2="${RGX/2}" y2="${y1-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="${y2-sy}" x2="${RGX/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${RGX/2}" y1="${y1-sy}" x2="${RGX/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${RGX/2}" y1="${ny-sy}" x2="${RGX}" y2="${ny-sy}" stroke="currentColor" stroke-width="1.5"/></svg>`;
+          }
+        }
       }
     }
-    if(r<rnds){
-      const ns=CHG*(1<<(r+1)),no=(ns-CH)/2;
-      for(let i=0;i<sc;i+=2){
-        const y1=off+i*sp+CH/2,y2=off+(i+1)*sp+CH/2,ny=no+(i/2)*ns+CH/2;
-        const mx=x+CW,sy=Math.min(y1,y2,ny)-2,sh=Math.max(y1,y2,ny)-sy+4;
-        html+=`<svg class="cn" style="left:${mx}px;top:${sy}px;width:${RGX+20}px;height:${sh}px"><line x1="0" y1="${y1-sy}" x2="${(RGX+20)/2}" y2="${y1-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="${y2-sy}" x2="${(RGX+20)/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${(RGX+20)/2}" y1="${y1-sy}" x2="${(RGX+20)/2}" y2="${y2-sy}" stroke="currentColor" stroke-width="1.5"/><line x1="${(RGX+20)/2}" y1="${ny-sy}" x2="${RGX+20}" y2="${ny-sy}" stroke="currentColor" stroke-width="1.5"/></svg>`;
-      }
-    }
+    const winSp=CHG*(1<<hr),winOff=(winSp-CH)/2;
+    const winX=mirror?xb:xb+hr*(CW+RGX);
+    const winY=yb+winOff;
+    return{html,winner:`${fid}-${tag}-r${hr}-s0`,h:hsz*CHG,w:(hr+1)*(CW+RGX),wx:winX,wy:winY};
   }
-  return{html,w:(rnds+1)*(CW+RGX+20)+100,h:sz*CHG+60};
+
+  const T=renderFinalsHalf(topSlots,'T',0,0,false);
+  const halfW=T.w;
+  const rightX=halfW+CW+RGX*2;
+  const B=renderFinalsHalf(botSlots,'B',rightX,0,true);
+  const bh=Math.max(T.h,B.h);
+  const champW=CW+20,champH=CH+16;
+  const lx=T.wx+CW,rx=B.wx;
+  const cx=(lx+rx)/2-champW/2;
+  const cy=bh/2-champH/2;
+  const champId=`${fid}-champ`;
+  let conns='';
+  const lcy=T.wy+CH/2,rcy=B.wy+CH/2,ccy=cy+champH/2;
+  const lsx=lx,lex=cx,lsy=Math.min(lcy,ccy)-2,lsh=Math.abs(lcy-ccy)+4;
+  conns+=`<svg class="cn gold" style="left:${lsx}px;top:${lsy}px;width:${lex-lsx}px;height:${lsh}px"><line x1="0" y1="${lcy-lsy}" x2="${lex-lsx}" y2="${ccy-lsy}" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4,3"/></svg>`;
+  const rsx=cx+champW,rex=rx,rsy=Math.min(rcy,ccy)-2,rsh=Math.abs(rcy-ccy)+4;
+  conns+=`<svg class="cn gold" style="left:${rsx}px;top:${rsy}px;width:${rex-rsx}px;height:${rsh}px"><line x1="0" y1="${ccy-rsy}" x2="${rex-rsx}" y2="${rcy-rsy}" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4,3"/></svg>`;
+  const champ=`<div class="rl" style="left:${cx}px;top:${cy-24}px;width:${champW}px">总冠军</div><div class="S E champ" id="${champId}" data-pa="${T.winner}" data-pb="${B.winner}" data-cn="" data-av="" style="left:${cx}px;top:${cy}px;width:${champW}px;height:${champH}px" onclick="openPicker(this)"><div class="ph" style="font-size:28px">👑</div></div>`;
+  const w=halfW*2+CW*3+RGX*4;
+  return{html:T.html+B.html+conns+champ,w,h:bh+60};
 }
 
 let splitMode='fill'; // 'fill' = 满编(每组填满上限) | 'even' = 均分(各组平均)
@@ -940,7 +985,7 @@ function syncFinals(){
       const lc=slot.dataset.link.replace(/-champ$/,'');
       const idx=lc.replace(/^.*?(\d+)$/,'$1');
       const label=String.fromCharCode(65+parseInt(idx));
-      slot.className='S';slot.style.cssText+=';border-color:#888;background:#0f1629';
+      slot.className='S';slot.style.cssText+=';border-color:var(--text3);background:var(--bg2)';
       slot.dataset.cn='';slot.dataset.av='';
       slot.innerHTML=`<div class="ph" style="font-size:11px;color:var(--text3)">${label}组冠军</div>`;
     }
