@@ -600,7 +600,7 @@ function buildAll(){
   // Action buttons (settings moved to modal)
   let cfgHtml='<div class="cfg">';
   cfgHtml+='<button onclick="openSettings()">⚙ 设置</button>';
-  cfgHtml+='<button onclick="buildAll()" style="background:#6a3a2a">🎲 打乱</button>';
+  cfgHtml+='<button onclick="showShuffleMenu()" style="background:#6a3a2a">🎲 打乱</button>';
   cfgHtml+='<button onclick="zm(1.3)">+</button><button onclick="zm(.7)">−</button>';
   cfgHtml+='<button onclick="rvTab(curTab)">重置视图</button>';
   cfgHtml+='</div>';
@@ -692,6 +692,60 @@ function switchTab(g){
 
 /* ── Config ── */
 function changeMode(m){mode=m;buildAll()}
+
+function showShuffleMenu(){
+  const bx=document.getElementById('pb');
+  let h='<div class="popt" onclick="cp();buildAll()"><div class="pn">🎲 打乱全部</div><div style="font-size:11px;color:#888">重建所有赛区</div></div>';
+  h+='<div class="pvs">/</div>';
+  h+='<div class="popt" onclick="cp();shuffleCurrent()"><div class="pn">🔀 只打乱当前组</div><div style="font-size:11px;color:#888">保留其他组进度</div></div>';
+  bx.innerHTML=h;
+  document.getElementById('ov').classList.add('show');
+}
+
+function shuffleCurrent(){
+  if(!curTab)return;
+  const panel=document.getElementById('p-'+curTab);
+  if(!panel)return;
+  // Collect round-0 filled slots (operators) in this tab
+  const r0=[...panel.querySelectorAll('.S[data-r="0"]')].filter(s=>!s.id.includes('-champ'));
+  const ops=[];const byeCount=[0];
+  r0.forEach(s=>{
+    if(s.classList.contains('bye'))byeCount[0]++;
+    else if(s.dataset.cn)ops.push({cn:s.dataset.cn,av:s.dataset.av,isArt:!!s.dataset.art});
+  });
+  // Shuffle ops + byes
+  const total=r0.length;
+  const shuffled=shuffleWithByes(ops,total);
+  // Clear all non-r0 slots in this tab
+  panel.querySelectorAll('.S').forEach(s=>{
+    const r=parseInt(s.dataset.r);
+    if(r>0&&!s.id.includes('-champ')){
+      s.className='S E';s.dataset.cn='';s.dataset.av='';delete s.dataset.art;
+      s.innerHTML='<div class="ph">?</div>';s.setAttribute('onclick','openPicker(this)');
+    }
+  });
+  // Also reset champ
+  const champ=panel.querySelector('.S.champ');
+  if(champ&&(champ.classList.contains('F')||champ.classList.contains('W'))){
+    champ.className='S E champ';champ.dataset.cn='';champ.dataset.av='';
+    champ.innerHTML='<div class="ph" style="font-size:28px">👑</div>';
+    champ.setAttribute('onclick','openPicker(this)');
+  }
+  // Reassign r0 slots
+  r0.forEach((s,i)=>{
+    const op=shuffled[i];
+    if(!op){
+      s.className='S bye';s.dataset.cn='';s.dataset.av='';delete s.dataset.art;
+      s.innerHTML='<div class="nm">轮空</div>';s.removeAttribute('onclick');
+    }else{
+      const ac=op.isArt?' art':'';
+      s.className='S F';s.dataset.cn=op.cn;s.dataset.av=op.av;
+      if(op.isArt)s.dataset.art='1';else delete s.dataset.art;
+      s.innerHTML=`<img class="${ac}" src="${op.av}" loading="lazy"><div class="nm">${op.cn}</div>`;
+    }
+  });
+  autoAdv();syncFinals();
+}
 
 /* ── Settings Panel ── */
 function openSettings(){
